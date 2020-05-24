@@ -110,3 +110,14 @@
 
 * 登入 https://etensword.com , 使用 Google 帳號看是否能成功登入
 * 切換至控制台, 點選[查詢未平倉]按鈕, 檢查代理程式是否成功回應
+
+
+## 更新代理程式
+
+* 打開 **Anaconda3 prompt**
+
+  ```
+  
+  (base) C:\Users\roger_lo> pip install git+https://github.com/rogerlonatural/etensword-agent
+
+  ```
