@@ -31,7 +31,7 @@
   (base) C:\Users\roger_lo> python --version
   Python 3.7.6
   
-  # 切換到代理程式目錄
+  # 切換到代理程式根目錄
   (base) C:\Users\roger_lo> cd C:\etensword-agent-master\
   
   # 安裝相依套件
@@ -52,20 +52,59 @@
 * 將以上資料交給 roger 註冊並取得金鑰檔(.json), 須將此金鑰檔存在代理程式能夠讀取到的目錄
 
 ## 修改設定檔
-* 
+* 先選定一目錄用來存放設定檔與金鑰檔, 最好與程式路徑不同, 以免之後更新程式時不慎被覆蓋
+* 將範本設定檔(C:\etensword-agent-master\config\agent_settings.ini)與金鑰檔(.json)複製至此目錄
+* 修改設定值
+  ```
+  
+  [order_agent]
+  agent_id=< 填入你的agent_id(GUID) >
+  
+  
+  [smart_api]
+  exec_path=< 填入你的元大 Smart API 執行檔 (Order.exe, GetAccount.exe, ...) 的存放目錄, 結尾要有 \ >
+  
+  [gcp]
+  ...
+  SUBSCRIPTION=< 填入你的代理幾名稱 >
+  GOOGLE_APPLICATION_CREDENTIALS=< 填入你的金鑰檔(.json)路徑 >
+  
+  
+  [logging]
+  log_file_path=< 填入你的log檔目錄, 結尾要有 \, 需確定代理程式有寫入權限 >EtenSwordAgent-{date}.log
+  log_level=INFO
+
+
+  ```
 
 ## 設定環境變數
+* 新增環境變數 ETENSWORD_AGENT_CONF = <你的設定檔路徑>
+    * 如何新增環境變數, 請參考: https://www.java.com/zh_TW/download/help/path.xml
 
 
 
-
-===== 以上步驟只需做一次, 之後啟動代理程式只需下面步驟 =====
+===== 以上步驟只需安裝時做一次, 之後啟動代理程式只需下面步驟 =====
 
 ----
 
 
 ## 啟動代理程式
+* 啟動元大 Smart API 並登入
+* 打開 **Anaconda3 prompt**
 
+  ```
 
-* 測試
+  # 切換到代理程式之子目錄etensword
+  (base) C:\Users\roger_lo> cd C:\etensword-agent-master\etensword\
+  
+  # 執行代理程式
+  (base) C:\etensword-agent-master> python order_agent.py
+  
+  2020-05-24 21:56:30,033 - INFO - [EtenSwordAgent] Listening for messages on projects/EtenSword/..
 
+  ```
+
+## 測試
+
+* 登入 https://etensword.com , 使用 Google 帳號看是否能成功登入
+* 切換至控制台, 點選[查詢未平倉]按鈕, 檢查代理程式是否成功回應
