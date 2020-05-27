@@ -279,14 +279,17 @@ class OrderAgent(object):
             return responses
 
         # close first, verify the open interest is BUY
-        if len(responses[-1]['result']) > 0 and ',B,' in responses[-1]['result']:
-            responses.append(self._put_order(product, ORDER_TYPE_SELL, price))
-            if not responses[-1]['success']:
-                return responses
-            # check order accepted
-            order_number = responses[-1]['result']
-            responses.append(self._get_account(order_number))
-            if not responses[-1]['success']:
+        if len(responses[-1]['result']) > 0:
+            if ',B,' in responses[-1]['result']:
+                responses.append(self._put_order(product, ORDER_TYPE_SELL, price))
+                if not responses[-1]['success']:
+                    return responses
+                # check order accepted
+                order_number = responses[-1]['result']
+                responses.append(self._get_account(order_number))
+                if not responses[-1]['success']:
+                    return responses
+            elif ',S,' in responses[-1]['result']:
                 return responses
 
         # then sell
@@ -311,14 +314,17 @@ class OrderAgent(object):
             return responses
 
         # close first, verify the open interest is SELL
-        if len(responses[-1]['result']) > 0 and ',S,' in responses[-1]['result']:
-            responses.append(self._put_order(product, ORDER_TYPE_BUY, price))
-            if not responses[-1]['success']:
-                return responses
-            # check order accepted
-            order_number = responses[-1]['result']
-            responses.append(self._get_account(order_number))
-            if not responses[-1]['success']:
+        if len(responses[-1]['result']) > 0:
+            if ',S,' in responses[-1]['result']:
+                responses.append(self._put_order(product, ORDER_TYPE_BUY, price))
+                if not responses[-1]['success']:
+                    return responses
+                # check order accepted
+                order_number = responses[-1]['result']
+                responses.append(self._get_account(order_number))
+                if not responses[-1]['success']:
+                    return responses
+            elif ',B,' in responses[-1]['result']:
                 return responses
 
         # then sell

@@ -36,7 +36,7 @@
   (base) C:\Users\roger_lo> cd C:\etensword-agent-master\
   
   # 安裝相依套件
-  (base) C:\etensword-agent-master> pip install -r requirements.txt
+  (base) C:\etensword-agent-master> python -m pip install -r requirements.txt
   
   # 安裝代理程式自己
   (base) C:\etensword-agent-master> python setup.py install
@@ -118,6 +118,6 @@
 
   ```
   
-  (base) C:\Users\roger_lo> pip install git+https://github.com/rogerlonatural/etensword-agent
+  (base) C:\Users\roger_lo> python -m pip install git+https://github.com/rogerlonatural/etensword-agent
 
   ```
