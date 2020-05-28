@@ -114,10 +114,16 @@
 
 ## 更新代理程式
 
-* 打開 **Anaconda3 prompt**
+* 關閉目前正在執行代理程式的 **Anaconda3 prompt**
+
+* 打開新的 **Anaconda3 prompt**
 
   ```
   
   (base) C:\Users\roger_lo> python -m pip install git+https://github.com/rogerlonatural/etensword-agent
 
+  # 執行代理程式
+  (base) C:\etensword-agent-master> python order_agent.py  
+  
   ```
+  
