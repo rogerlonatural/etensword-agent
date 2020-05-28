@@ -274,9 +274,16 @@ class OrderAgent(object):
         if not responses[-1]['success']:
             return responses
 
-        responses.append(self._has_open_interest())
-        if not responses[-1]['success']:
-            return responses
+        retry = 0
+        while True:
+            responses.append(self._has_open_interest())
+            if not responses[-1]['success']:
+                return responses
+            if ',S,' in responses[-1]['result'] or ',B,' in responses[-1]['result']:
+                break
+            if retry > 3:
+                return  responses
+            retry += 1
 
         # close first, verify the open interest is BUY
         if len(responses[-1]['result']) > 0:
@@ -309,9 +316,16 @@ class OrderAgent(object):
         if not responses[-1]['success']:
             return responses
 
-        responses.append(self._has_open_interest())
-        if not responses[-1]['success']:
-            return responses
+        retry = 0
+        while True:
+            responses.append(self._has_open_interest())
+            if not responses[-1]['success']:
+                return responses
+            if ',S,' in responses[-1]['result'] or ',B,' in responses[-1]['result']:
+                break
+            if retry > 3:
+                return  responses
+            retry += 1
 
         # close first, verify the open interest is SELL
         if len(responses[-1]['result']) > 0:
