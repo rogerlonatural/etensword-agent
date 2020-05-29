@@ -1,16 +1,18 @@
 from unittest import TestCase
 
-from etensword.order_agent import OrderAgent
+from etensword.api import OrderAgent
 
 
 class TestOrderAgent(TestCase):
     def test_close_and_sell(self):
         agent = OrderAgent()
-        agent.CloseAndSell('MXFF0', 10000)
+        result = agent.CloseAndSell('MXFF0', 10000)
+        print(result)
 
     def test_close_and_buy(self):
         agent = OrderAgent()
-        agent.CloseAndBuy('MXFF0', 10000)
+        result = agent.CloseAndBuy('MXFF0', 10000)
+        print(result)
 
 
     def test__get_account(self):
