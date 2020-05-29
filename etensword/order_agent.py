@@ -279,7 +279,8 @@ class OrderAgent(object):
             responses.append(self._has_open_interest())
             if not responses[-1]['success']:
                 return responses
-            if ',S,' in responses[-1]['result'] or ',B,' in responses[-1]['result']:
+            result = responses[-1]['result'].strip()
+            if ',S,' in result or ',B,' in result or len(result) == 0:
                 break
             if retry > 3:
                 return  responses
