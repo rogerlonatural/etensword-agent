@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='etensword-agent',
-    version='0.0.2',
+    version='0.0.3',
     packages=['etensword'],
     url='',
     license='',
