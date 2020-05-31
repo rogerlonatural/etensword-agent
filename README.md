@@ -8,7 +8,8 @@
     * https://www.yuantafutures.com.tw/file-repository/content/smartAPI/page1.html
 * 安裝 Anaconda3 (內含 Python3) 並測試成功
     * https://zhuanlan.zhihu.com/p/75717350 (不要裝 Tensorflow)
-
+* 安裝 git for Windows
+    * https://git-scm.com/download/win
 
 ## 安裝代理程式
 
