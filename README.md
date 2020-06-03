@@ -126,7 +126,7 @@
 
   ```
   
-  (base) C:\Users\roger_lo> python -m pip install --force C:\futures_source\etensword-agent
+  (base) C:\Users\roger_lo> python -m pip install --force C:\etensword-agent-master
 
   # 切換至代理程式目錄
   (base) C:\Users\roger_lo> CD C:\etensword-agent-master
