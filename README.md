@@ -117,14 +117,28 @@
 
 * 關閉目前正在執行代理程式的 **Anaconda3 prompt**
 
+* 將原本代理程式目錄更名備份, 如 C:\etensword-agent-master => C:\etensword-agent-<備份日期>
+
+* 下載新版代理程式: https://github.com/rogerlonatural/etensword-agent
+    * Download ZIP file 到 C:\ 並解壓縮
+
 * 打開新的 **Anaconda3 prompt**
 
   ```
   
-  (base) C:\Users\roger_lo> python -m pip install git+https://github.com/rogerlonatural/etensword-agent
+  (base) C:\Users\roger_lo> python -m pip install --force C:\futures_source\etensword-agent
 
+  # 切換至代理程式目錄
+  (base) C:\Users\roger_lo> CD C:\etensword-agent-master
+  
   # 執行代理程式
-  (base) C:\etensword-agent-master> python order_agent.py  
+  (base) C:\etensword-agent-master> python .\etensword\order_agent.py  
+  
+  
+  # 檢查執行結果確定版號日期 [EtenSwordAgent-xx.xxx.xx] 是否更新 
+  
+  2020-06-03 22:31:54,747 - INFO - [EtenSwordAgent-20.0603.00] Listening for messages on projects/EtenSword/subscriptions/....
+  
   
   ```
   
