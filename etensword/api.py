@@ -12,6 +12,8 @@ from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
 from etensword.utils import publish_message_to_pubsub
 
+BUILD_NUM = '20.0603.00'
+
 ORDER_PRICE_MARKET = 'MKT'  # 市價單則任意值即可
 ORDER_REST_OF_DAY = 'ROD'  # ROD當日有效
 ORDER_IMMEDIATE_OR_CANCEL = 'IOC'  # IOC立即成交否則不成交
@@ -246,10 +248,12 @@ class OrderAgent(object):
             result = result.strip()
             if ',S,' in result or ',B,' in result or len(result) == 0:
                 break
-            if retry > 3:
+            if retry > 10:
+                result += '... Failed after retry %s times' % retry
                 success = False
                 break
             retry += 1
+            time.sleep(retry)
         return dict(
             api=self.args_to_api_info(args),
             success=success,
@@ -356,7 +360,7 @@ class OrderAgent(object):
         return responses
 
 
-logger = get_logger('EtenSwordAgent')
+logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 ORDER_TYPE_BUY = 'B'
 ORDER_TYPE_SELL = 'S'
 ORDER_PRICE_LIMIT = 'LMT'  # 委託價格
