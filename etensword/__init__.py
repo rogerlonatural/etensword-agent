@@ -13,5 +13,6 @@ def get_config(argv=None):
     config = ConfigParser()
     config.read(ini_file)
 
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = config.get('gcp', 'GOOGLE_APPLICATION_CREDENTIALS')
+    if 'gcp' in config:
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = config.get('gcp', 'GOOGLE_APPLICATION_CREDENTIALS')
     return config
