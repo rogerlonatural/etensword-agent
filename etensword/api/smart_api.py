@@ -57,7 +57,7 @@ class OrderAgent(OrderAgentBase):
                 str(qty),
                 price_type,
                 trade_type,
-                self.ORDER_NON_DAY_TRADING]
+                ORDER_NON_DAY_TRADING]
         success, result = self._exec_command(args)
         return dict(
             api=self.args_to_api_info(args),
