@@ -1,18 +1,8 @@
-import json
-import os
-import socket
 import subprocess as sp
 import time
 import traceback
 
-from google.cloud import pubsub_v1
-
-from etensword import get_config
-from etensword.agent_commands import AgentCommand
-from etensword.agent_logging import get_logger
-from etensword.utils import publish_message_to_pubsub
-
-BUILD_NUM = '20.0603.00'
+from etensword.api.base import OrderAgentBase, logger
 
 ORDER_PRICE_MARKET = 'MKT'  # 市價單則任意值即可
 ORDER_REST_OF_DAY = 'ROD'  # ROD當日有效
@@ -20,94 +10,12 @@ ORDER_IMMEDIATE_OR_CANCEL = 'IOC'  # IOC立即成交否則不成交
 ORDER_FILL_OR_KILL = 'FOK'  # FOK全部成交否則不成交
 ORDER_NON_DAY_TRADING = '1'  # 非當沖
 ORDER_DAY_TRADING = '0'  # 當沖
+ORDER_TYPE_BUY = 'B'
+ORDER_TYPE_SELL = 'S'
+ORDER_PRICE_LIMIT = 'LMT'  # 委託價格
 
 
-class OrderAgent(object):
-
-    def __init__(self, config=None):
-        if not config:
-            config = get_config()
-        self.config = config
-
-    def is_agent_active(self):
-        hostname = socket.gethostname()
-        if os.path.exists(hostname):
-            with open(hostname, 'r') as f:
-                status = f.readline()
-                return status == 'Active'
-        else:
-            return True
-
-    def SetAgentActive(self, status):
-        responses = []
-        api = 'set_agent_active'
-        try:
-            hostname = socket.gethostname()
-            s = 'Active' if status else 'Inactive'
-            with open(hostname, 'w') as f:
-                f.write(s)
-            response = dict(
-                api=api,
-                success=True,
-                result='Agent is now %s' % s
-            )
-        except:
-            err_str = 'Failed to set agent status. Error: %s' % traceback.format_exc()
-            print(err_str)
-            response = dict(
-                api=api,
-                success=False,
-                result=err_str
-            )
-        responses.append(response)
-        return responses
-
-    def run(self, payload):
-        try:
-            command = payload['command']
-            props = payload['props'] if 'props' in payload else {}
-            expire_at = payload['expire_at'] if 'expire_at' in payload else payload[
-                                                                                'publish_time'] + AgentCommand.COMMAND_TIMEOUT
-            if time.time() > expire_at:
-                return [dict(
-                    api=command,
-                    success=False,
-                    result='Command is not executed because it is expired (Timeout=%s sec)' % AgentCommand.COMMAND_TIMEOUT
-                )]
-            if command != AgentCommand.ENABLE_AGENT and not self.is_agent_active():
-                return [dict(
-                    api=command,
-                    success=False,
-                    result='Command is not executed because agent is inactive'
-                )]
-            if command == AgentCommand.CHECK_AGENT:
-                return [dict(
-                    api=command,
-                    success=True,
-                    result='I am great!'
-                )]
-            if command == AgentCommand.DISABLE_AGENT:
-                return self.SetAgentActive(False)
-
-            if command == AgentCommand.ENABLE_AGENT:
-                return self.SetAgentActive(True)
-
-            if command == AgentCommand.CHECK_OPEN_INTEREST:
-                return self.HasOpenInterest(props['product'])
-
-            if command == AgentCommand.MAYDAY:
-                return self.MayDay(props['product'])
-
-            if command == AgentCommand.CLOSE_AND_SELL:
-                return self.CloseAndSell(props['product'], props['price'])
-
-            if command == AgentCommand.CLOSE_AND_BUY:
-                return self.CloseAndBuy(props['product'], props['price'])
-
-        except:
-            msg = 'Failed to execute command. Error: %s' % traceback.format_exc()
-            logger.error(msg)
-            return False, msg
+class OrderAgent(OrderAgentBase):
 
     def args_to_api_info(self, args):
         api_info = ' '.join(args)
@@ -149,7 +57,7 @@ class OrderAgent(object):
                 str(qty),
                 price_type,
                 trade_type,
-                ORDER_NON_DAY_TRADING]
+                self.ORDER_NON_DAY_TRADING]
         success, result = self._exec_command(args)
         return dict(
             api=self.args_to_api_info(args),
@@ -162,18 +70,6 @@ class OrderAgent(object):
         order_exec_path = self.config.get('smart_api', 'exec_path') + api
         args = [order_exec_path, 'Delete', order_number]
         success, result = self._exec_command(args)
-        return dict(
-            api=self.args_to_api_info(args),
-            success=success,
-            result=result
-        )
-
-    def _change_product(self, product):
-        api = 'ChangeProdid.exe'
-        change_prodid_exec_path = self.config.get('smart_api', 'exec_path') + api
-        args = [change_prodid_exec_path, product]
-        success, result = self._exec_command(args)
-
         return dict(
             api=self.args_to_api_info(args),
             success=success,
@@ -260,6 +156,18 @@ class OrderAgent(object):
             result=result
         )
 
+    def _change_product(self, product):
+        api = 'ChangeProdid.exe'
+        change_prodid_exec_path = self.config.get('smart_api', 'exec_path') + api
+        args = [change_prodid_exec_path, product]
+        success, result = self._exec_command(args)
+
+        return dict(
+            api=self.args_to_api_info(args),
+            success=success,
+            result=result
+        )
+
     def HasOpenInterest(self, product):
         responses = []
         responses.append(self._change_product(product))
@@ -268,6 +176,7 @@ class OrderAgent(object):
 
         responses.append(self._has_open_interest())
         return responses
+
 
     def MayDay(self, product):
         responses = []
@@ -359,92 +268,3 @@ class OrderAgent(object):
 
         return responses
 
-
-logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
-ORDER_TYPE_BUY = 'B'
-ORDER_TYPE_SELL = 'S'
-ORDER_PRICE_LIMIT = 'LMT'  # 委託價格
-
-
-def pull_message_from_pubsub():
-    config = get_config()
-    project_id = config.get('gcp', 'PROJECT_ID')
-    subscription_name = config.get('gcp', 'SUBSCRIPTION')
-    subscriber = pubsub_v1.SubscriberClient()
-    # The `subscription_path` method creates a fully qualified identifier
-    # in the form `projects/{project_id}/subscriptions/{subscription_name}`
-    subscription_path = subscriber.subscription_path(
-        project_id, subscription_name
-    )
-
-    streaming_pull_future = subscriber.subscribe(
-        subscription_path, callback=process_order
-    )
-    logger.info("Listening for messages on {}..".format(subscription_path))
-    # Wrap subscriber in a 'with' block to automatically call close() when done.
-    with subscriber:
-        try:
-            # When `timeout` is not set, result() will block indefinitely,
-            # unless an exception is encountered first.
-            streaming_pull_future.result()
-
-        except KeyboardInterrupt as e:
-            streaming_pull_future.cancel()
-            raise e
-        except Exception as e:  # noqa
-            logger.error('Failed to process message. Error: %s' % traceback.format_exc())
-            streaming_pull_future.cancel()
-
-
-def process_order(message):
-    config = get_config()
-    message_data = message.data.decode('utf-8')
-    logger.info("Received message: {}".format(message_data))
-
-    payload = json.loads(message_data)
-    agent = payload['agent'] if 'agent' in payload else ''
-    command_id = payload['command_id']
-    if agent and agent != config.get('order_agent', 'agent_id'):
-        logger.info('Skip command: %s of other agent' % command_id)
-        message.ack()
-        return
-
-    agent = OrderAgent()
-    responses = agent.run(payload)
-    command = payload['command']
-    try:
-        feedback_execution_result(command, command_id, {
-            'success': responses[-1]['success'],
-            'results': responses
-        })
-    except:
-        logger.error('Failed to parse responses, command: %s, responses: %s', (command, responses))
-        logger.error(traceback.format_exc())
-        feedback_execution_result(command, command_id, {
-            'success': False,
-            'results': responses
-        })
-    message.ack()
-    logger.info('Message acknowledged. command_id: %s' % command_id)
-
-
-def feedback_execution_result(command, command_id, result):
-    config = get_config()
-    logger.info('command result: %s' % result)
-    project_id = config.get('gcp', 'PROJECT_ID')
-    topic = config.get('gcp', 'TOPIC_FEEDBACK')
-    msg_object = {
-        'command': command,
-        'message': {
-            'execution_result': json.dumps(result)
-        },
-        'agent': config.get('order_agent', 'agent_id'),
-        'command_id': command_id
-    }
-    publish_message_to_pubsub(project_id, topic, msg_object)
-
-
-def start(args):
-    while True:
-        pull_message_from_pubsub()
-        time.sleep(0.1)

@@ -1,3 +1,4 @@
 pip==20.0.2
 setuptools==40.3.0
 google-cloud-pubsub==1.4.3
+shioaji
