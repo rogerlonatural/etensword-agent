@@ -19,14 +19,14 @@ logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 class OrderAgentFactory:
 
     @staticmethod
-    def get_order_agent(order_agent_vendor='smart_api'):
+    def get_order_agent(order_agent_type='smart_api'):
         try:
-            order_agent_module = import_module('etensword.api.%s' % order_agent_vendor, 'OrderAgent')
+            order_agent_module = import_module('etensword.api.%s' % order_agent_type, 'OrderAgent')
             order_agent_class = getattr(order_agent_module, 'OrderAgent')
             return order_agent_class()
 
         except Exception as e:
-            print('Failed to get order agent %s' % order_agent_vendor)
+            print('Failed to get order agent %s' % order_agent_type)
             print(traceback.format_exc())
             return None
 
@@ -145,6 +145,7 @@ def pull_message_from_pubsub():
     streaming_pull_future = subscriber.subscribe(
         subscription_path, callback=process_order
     )
+    logger.info('Order agent type: %s' % config.get('order_agent', 'order_agent_type'))
     logger.info("Listening for messages on {}..".format(subscription_path))
     # Wrap subscriber in a 'with' block to automatically call close() when done.
     with subscriber:
@@ -174,7 +175,7 @@ def process_order(message):
         message.ack()
         return
 
-    agent = OrderAgentFactory.get_order_agent()
+    agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
     responses = agent.run(payload)
     command = payload['command']
     try:
