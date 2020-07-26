@@ -3,3 +3,6 @@
 /.cert/
 /etensword/logs/
 /logs/
+/.vscode/
+/shioaji_api/
+/smart_api/

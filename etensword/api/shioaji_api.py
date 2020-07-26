@@ -84,6 +84,26 @@ class OrderAgent(OrderAgentBase):
                     )
                 time.sleep(retry)
 
+    def _check_order_info(self, expected, timeout=5):
+        stime = time.time()
+        while True:
+            results = self.api.list_positions(self.account)
+            if not results:
+                time.sleep(1)
+            for result in results:
+                if result.direction == expected:
+                    return dict(
+                        api='position_info',
+                        success=True,
+                        result=self._wrap_list_positions_result(result)
+                    )
+            if time.time() - stime > timeout:
+                return dict(
+                    api='position_info',
+                    success=False,
+                    result='no expected position found'
+                )
+
     def _wrap_place_order_result(self, result):
         wrap_result = dict(
             product=result.contract.code,
@@ -98,7 +118,6 @@ class OrderAgent(OrderAgentBase):
         return json.dumps(wrap_result)
 
     def _place_order(self, product, order_type, price=0, qty=1, trade_type=ORDER_REST_OF_DAY):
-
         try:
             contract = self.api.Contracts.Futures[product]
             print(contract)
@@ -164,7 +183,6 @@ class OrderAgent(OrderAgentBase):
 
     def CloseAndBuy(self, product, price):
         responses = []
-
         responses.append(self._has_open_interest())
         if not responses[-1]['success']:
             return responses
@@ -182,11 +200,15 @@ class OrderAgent(OrderAgentBase):
 
         # then buy
         responses.append(self._place_order(product, ORDER_TYPE_BUY, price))
+        if not responses[-1]['success']:
+            return responses
+
+        # check buy posisition
+        responses.append(self._check_order_info(Action.Buy))
         return responses
 
     def CloseAndSell(self, product, price):
         responses = []
-
         responses.append(self._has_open_interest())
         if not responses[-1]['success']:
             return responses
@@ -204,6 +226,11 @@ class OrderAgent(OrderAgentBase):
 
         # then buy
         responses.append(self._place_order(product, ORDER_TYPE_SELL, price))
+        if not responses[-1]['success']:
+            return responses
+
+        # check buy posisition
+        responses.append(self._check_order_info(Action.Sell))
         return responses
 
     def MayDay(self, product):

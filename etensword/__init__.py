@@ -4,6 +4,7 @@ from configparser import ConfigParser
 
 def get_config(argv=None):
     ini_file = os.getenv('ETENSWORD_AGENT_CONF')
+    print('Get ini_file path from environment variable ETENSWORD_AGENT_CONF => %s' % ini_file)
     if not ini_file:
         if argv and len(argv) > 0:
             ini_file = argv[0]

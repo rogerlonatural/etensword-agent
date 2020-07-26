@@ -1,6 +1,5 @@
 import json
 import os
-import socket
 import time
 import traceback
 from importlib import import_module
@@ -12,7 +11,7 @@ from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
 from etensword.utils import publish_message_to_pubsub
 
-BUILD_NUM = '20.0720.00'
+BUILD_NUM = '20.0725.00'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 
 
