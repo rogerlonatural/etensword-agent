@@ -1,1 +1,1 @@
-cp .cert/shioaji_api/* config/
+ls /app/config/
