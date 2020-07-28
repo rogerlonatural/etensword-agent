@@ -171,7 +171,10 @@ def process_order(message):
     command_id = payload['command_id']
     if agent and agent != config.get('order_agent', 'agent_id'):
         logger.info('Skip command: %s of other agent' % command_id)
-        message.ack()
+        try:
+            message.ack()
+        except AttributeError:
+            pass
         return
 
     agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
@@ -189,7 +192,10 @@ def process_order(message):
             'success': False,
             'results': responses
         })
-    message.ack()
+    try:
+        message.ack()
+    except AttributeError:
+        pass
     logger.info('Message acknowledged. command_id: %s' % command_id)
 
 

@@ -84,18 +84,18 @@ class OrderAgent(OrderAgentBase):
                     )
                 time.sleep(retry)
 
-    def _check_order_info(self, expected, timeout=5):
+    def _check_order_info(self, product, expected, timeout=5):
         stime = time.time()
         while True:
-            results = self.api.list_positions(self.account)
-            if not results:
+            positions = self.api.list_positions(self.account)
+            if not positions:
                 time.sleep(1)
-            for result in results:
-                if result.direction == expected:
+            for position in positions:
+                if position.code == product and position.direction == expected:
                     return dict(
                         api='position_info',
                         success=True,
-                        result=self._wrap_list_positions_result(result)
+                        result=self._wrap_list_positions_result(position)
                     )
             if time.time() - stime > timeout:
                 return dict(
@@ -160,12 +160,13 @@ class OrderAgent(OrderAgentBase):
                 return responses
 
             for position in positions:
-                responses.append(self._place_order(
-                    product=position.code,
-                    order_type=ORDER_TYPE_BUY if position.direction == Action.Sell else ORDER_TYPE_SELL,
-                    price=0))
-                if not responses[-1]['success']:
-                    return responses
+                if position.code == product:
+                    responses.append(self._place_order(
+                        product=position.code,
+                        order_type=ORDER_TYPE_BUY if position.direction == Action.Sell else ORDER_TYPE_SELL,
+                        price=0))
+                    if not responses[-1]['success']:
+                        return responses
             return responses
 
         except Exception as e:
@@ -190,7 +191,7 @@ class OrderAgent(OrderAgentBase):
         # close first, verify the open interest is SELL
         open_positions = json.loads(responses[-1]['result'])
         for position in open_positions:
-            if position.direction == Action.Sell:
+            if position.code == product and position.direction == Action.Sell:
                 responses.append(self._place_order(product, ORDER_TYPE_BUY, price))
                 if not responses[-1]['success']:
                     return responses
@@ -204,7 +205,7 @@ class OrderAgent(OrderAgentBase):
             return responses
 
         # check buy posisition
-        responses.append(self._check_order_info(Action.Buy))
+        responses.append(self._check_order_info(product, Action.Buy))
         return responses
 
     def CloseAndSell(self, product, price):
@@ -216,7 +217,7 @@ class OrderAgent(OrderAgentBase):
         # close first, verify the open interest is Buy
         open_positions = json.loads(responses[-1]['result'])
         for position in open_positions:
-            if position.direction == Action.Buy:
+            if position.code == product and position.direction == Action.Buy:
                 responses.append(self._place_order(product, ORDER_TYPE_SELL, price))
                 if not responses[-1]['success']:
                     return responses
@@ -230,7 +231,7 @@ class OrderAgent(OrderAgentBase):
             return responses
 
         # check buy posisition
-        responses.append(self._check_order_info(Action.Sell))
+        responses.append(self._check_order_info(product, Action.Sell))
         return responses
 
     def MayDay(self, product):
