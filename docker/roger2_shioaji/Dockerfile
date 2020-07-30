@@ -1,4 +1,4 @@
-FROM gcr.io/etensword-order-agent/agent-app:latest
+FROM gcr.io/etensword-order-agent/agent-app:2020.07.31.0
 
 COPY ./.cert/* /app/config/
 

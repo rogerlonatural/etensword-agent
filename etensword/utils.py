@@ -10,7 +10,12 @@ logger = get_logger(__name__)
 
 
 def publish_message_to_pubsub(project_id, topic, msg_object):
-    publisher = pubsub_v1.PublisherClient()
+    batch_settings = pubsub_v1.types.BatchSettings(
+        max_messages=1,
+        max_bytes=1024,
+        max_latency=1,
+    )
+    publisher = pubsub_v1.PublisherClient(batch_settings)
     topic_path = publisher.topic_path(project_id, topic)
     msg_object['hostname'] = socket.gethostname()
     msg_object['publish_time'] = time.time()

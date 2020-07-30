@@ -71,8 +71,8 @@ class OrderAgentBase(object):
         return responses
 
     def run(self, payload):
+        command = payload['command']
         try:
-            command = payload['command']
             props = payload['props'] if 'props' in payload else {}
             expire_at = payload['expire_at'] if 'expire_at' in payload else payload[
                                                                                 'publish_time'] + AgentCommand.COMMAND_TIMEOUT
@@ -115,7 +115,11 @@ class OrderAgentBase(object):
         except:
             msg = 'Failed to execute command. Error: %s' % traceback.format_exc()
             logger.error(msg)
-            return False, msg
+            return [dict(
+                api=command,
+                success=False,
+                result=msg
+            )]
 
     def HasOpenInterest(self, product):
         raise NotImplementedError()
@@ -177,8 +181,12 @@ def process_order(message):
             pass
         return
 
+    print('Execute command: %s' % payload)
+
     agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
     responses = agent.run(payload)
+
+    print('Publish feedback: %s' % responses)
     command = payload['command']
     try:
         feedback_execution_result(command, command_id, {

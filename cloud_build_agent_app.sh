@@ -1,4 +1,4 @@
-BUILD_VERION=2020.07.26.0
+BUILD_VERION=2020.07.31.0
 PROJECT_ID=etensword-order-agent
 SERVICE_NAME=agent-app
 

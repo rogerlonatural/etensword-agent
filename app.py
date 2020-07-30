@@ -1,4 +1,6 @@
-import os, base64
+import base64
+import os
+import traceback
 
 from flask import Flask, request
 
@@ -34,16 +36,19 @@ def push_message_from_pubsub():
     pubsub_message = envelope['message']
     print(f'pubsub_message: {pubsub_message}')
 
-    if isinstance(pubsub_message, dict) and 'data' in pubsub_message:
-        message_data = base64.b64decode(pubsub_message['data'])
-        print(f'message_data: {message_data}')
+    try:
+        if isinstance(pubsub_message, dict) and 'data' in pubsub_message:
+            message_data = base64.b64decode(pubsub_message['data'])
+            print(f'message_data: {message_data}')
 
-        class Message(object):
-            pass
+            class Message(object):
+                pass
 
-        command_message = Message()
-        command_message.data = message_data
-        process_order(command_message)
+            command_message = Message()
+            command_message.data = message_data
+            process_order(command_message)
+    except:
+        print('Error on push_message_from_pubsub > %s' % traceback.format_exc())
 
     return ('', 204)
 
