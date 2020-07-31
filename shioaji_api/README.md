@@ -1,11 +1,12 @@
 
-# 倚天劍代理程式安裝說明
+# 倚天劍代理程式(使用永豐金Shioaji API)安裝說明
 
 ## 準備環境
 
 * Windows 10 中文版以上
-* 安裝元大 Smart API 並開通下單 API 權限
-    * https://www.yuantafutures.com.tw/file-repository/content/smartAPI/page1.html
+* 安裝 Vagrant
+    * Download: https://www.vagrantup.com/downloads
+
 * 安裝 Anaconda3 (內含 Python3) 並測試成功
     * https://zhuanlan.zhihu.com/p/75717350 (不要裝 Tensorflow)
 * 安裝 git for Windows

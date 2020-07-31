@@ -83,7 +83,7 @@ class OrderAgent(OrderAgentBase):
                 time.sleep(retry)
 
     def _check_order_info(self, product, expected, timeout=5):
-        print('_check_order_info > product: %s, expected: %s' % product, expected)
+        print('_check_order_info > product: %s, expected: %s' % (product, expected))
         stime = time.time()
         while True:
             response = self._has_open_interest()
@@ -231,7 +231,7 @@ class OrderAgent(OrderAgentBase):
         return responses
 
     def CloseAndSell(self, product, price):
-        print('CloseAndBuy > product: %s, price: %s' % (product, price))
+        print('CloseAndSell > product: %s, price: %s' % (product, price))
         responses = []
         responses.append(self._has_open_interest())
         print('CloseAndSell > _has_open_interest > %s' % responses[-1])
