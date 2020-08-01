@@ -15,16 +15,16 @@
 
 ### 建立目錄
 
-1. c:\vagrant
-2. c:\vagrant_data
-3. c:\vagrant_data\\<代理程式名稱>
-4. c:\vagrant_data\\<代理程式名稱>\config
+1. C:\vagrant
+2. C:\vagrant_data
+3. C:\vagrant_data\\<代理程式名稱>
+4. C:\vagrant_data\\<代理程式名稱>\config
 
 ### 複製金鑰檔(.json)
 
 將金鑰檔更名並複製到
 
-c:\vagrant_data\\<代理程式名稱>\config\agent_key.json
+C:\vagrant_data\\<代理程式名稱>\config\agent_key.json
 
 
 ### 複製憑證
@@ -38,12 +38,12 @@ c:\vagrant_data\\<代理程式名稱>\config\agent_key.json
 
 將憑證複製到 
 
-c:\vagrant_data\\<代理程式名稱>\config\Sinopac.pfx
+C:\vagrant_data\\<代理程式名稱>\config\Sinopac.pfx
 
 
 ### 建立設定擋
 
-c:\vagrant_data\\<代理程式名稱>\config\agent_settings.ini
+C:\vagrant_data\\<代理程式名稱>\config\agent_settings.ini
 
 範本: https://github.com/rogerlonatural/etensword-agent/blob/master/config/agent_settings.ini
 
@@ -80,7 +80,7 @@ c:\vagrant_data\\<代理程式名稱>\config\agent_settings.ini
 
 ### 建立代理機起動檔 (start.sh)
 
-c:\vagrant_data\\<代理程式名稱>\start.sh
+C:\vagrant_data\\<代理程式名稱>\start.sh
 
 
 ### 修改代理機起動檔 (start.sh)
@@ -120,12 +120,12 @@ Restart windows
 
 ### 切換目錄
 
-cd c:\vagrant
+cd C:\vagrant
 
 ### 檢查 Vagrant 是否安裝好
 
 ```
-c:\vagrant>vagrant version
+C:\vagrant>vagrant version
 Installed Version: 2.2.9
 Latest Version: 2.2.9
 
@@ -135,7 +135,7 @@ You're running an up-to-date version of Vagrant!
 ### 執行 vagrant init
 
 ```
-c:\vagrant>vagrant init genebean/centos-7-docker-ce --box-version 2.3.20190814
+C:\vagrant>vagrant init genebean/centos-7-docker-ce --box-version 2.3.20190814
 
 
 A `Vagrantfile` has been placed in this directory. You are now
@@ -147,11 +147,11 @@ the comments in the Vagrantfile as well as documentation on
 ### 確認 Vagrantfile 有生成
 
 ```
-c:\vagrant>dir
+C:\vagrant>dir
  Volume in drive C is Windows
  Volume Serial Number is 227D-9D9A
 
- Directory of c:\vagrant
+ Directory of C:\vagrant
 
 08/01/2020  04:14 AM    <DIR>          .
 08/01/2020  04:14 AM    <DIR>          ..
@@ -204,7 +204,7 @@ c:\vagrant>dir
 ### 啟動 Vagrant
 
 ```
-c:\vagrant>vagrant up
+C:\vagrant>vagrant up
 
 ……….
 ……….
@@ -224,10 +224,10 @@ Going on, assuming VBoxService is correct...
 ```
 
 
-### 登入 vagrant
+### 登入 Vagrant
 
 ```
-c:\vagrant>vagrant ssh
+C:\vagrant>vagrant ssh
 
 Last failed login: Wed Aug 14 13:31:57 EDT 2019 from 10.0.2.2 on ssh:notty
 There was 1 failed login attempt since the last successful login.
