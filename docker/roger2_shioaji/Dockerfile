@@ -1,10 +1,7 @@
-FROM gcr.io/etensword-order-agent/agent-app:2020.07.31.0
+FROM gcr.io/etensword-order-agent/agent-app:latest
 
 COPY ./.cert/* /app/config/
 
-COPY ./setup.sh /app/setup.sh
-
-RUN sh setup.sh
 
 # Run the web service on container startup. Here we use the gunicorn
 # webserver, with one worker process and 8 threads.

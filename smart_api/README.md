@@ -68,7 +68,7 @@
   
   [gcp]
   ...
-  SUBSCRIPTION=< 填入你的代理幾名字 >
+  SUBSCRIPTION=< 填入你的代理機名字 >
   GOOGLE_APPLICATION_CREDENTIALS=< 填入你的金鑰檔(.json)路徑 >
   
   

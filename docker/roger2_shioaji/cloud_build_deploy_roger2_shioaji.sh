@@ -1,4 +1,4 @@
-BUILD_VERION=2020.07.31.0
+BUILD_VERION=20200801.0
 PROJECT_ID=etensword-order-agent
 SERVICE_NAME=roger2-shioaji
 
