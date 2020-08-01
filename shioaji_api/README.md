@@ -17,14 +17,14 @@
 
 1. c:\vagrant
 2. c:\vagrant_data
-3. c:\vagrant_data\<代理程式名稱>
-4. c:\vagrant_data\<代理程式名稱>\config
+3. c:\vagrant_data\\<代理程式名稱>
+4. c:\vagrant_data\\<代理程式名稱>\config
 
 ### 複製金鑰檔(.json)
 
 將金鑰檔更名並複製到
 
-c:\vagrant_data\<代理程式名稱>\config\agent_key.json
+c:\vagrant_data\\<代理程式名稱>\config\agent_key.json
 
 
 ### 複製憑證
@@ -38,12 +38,12 @@ c:\vagrant_data\<代理程式名稱>\config\agent_key.json
 
 將憑證複製到 
 
-c:\vagrant_data\<代理程式名稱>\config\Sinopac.pfx
+c:\vagrant_data\\<代理程式名稱>\config\Sinopac.pfx
 
 
 ### 建立設定擋
 
-c:\vagrant_data\<代理程式名稱>\config\agent_settings.ini
+c:\vagrant_data\\<代理程式名稱>\config\agent_settings.ini
 
 範本: https://github.com/rogerlonatural/etensword-agent/blob/master/config/agent_settings.ini
 
@@ -80,7 +80,7 @@ c:\vagrant_data\<代理程式名稱>\config\agent_settings.ini
 
 ### 建立代理機起動檔 (start.sh)
 
-c:\vagrant_data\<代理程式名稱>\start.sh
+c:\vagrant_data\\<代理程式名稱>\start.sh
 
 
 ### 修改代理機起動檔 (start.sh)
@@ -272,13 +272,13 @@ Server: Docker Engine - Community
 
 ```
 
-> cd /vagrant_data/代理程式名稱>/
+> cd /vagrant_data/<代理程式名稱>/
 
 > ls -al
 
   < 應有 start.sh >
 
-> ls -al /vagrant_data/代理程式名稱>/config/
+> ls -al /vagrant_data/<代理程式名稱>/config/
 
   < 應有 agent_key.json, agent_settings.ini, Sinopac.pfx >
 
@@ -309,5 +309,5 @@ Get ini_file path from environment variable ETENSWORD_AGENT_CONF => /app/config/
 
 ----
 
-===== 以上步驟只需安裝時做一次, 之後啟動代理程式只需從 _啟動 Vagrant_  這步驟開始即可 =====
+===== 以上步驟只需安裝時做一次, 之後啟動代理程式只需從 __***啟動 Vagrant***__  這步驟開始即可 =====
 
