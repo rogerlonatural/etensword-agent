@@ -175,7 +175,7 @@ class OrderAgent(OrderAgentBase):
                 if position['product'] == product:
                     responses.append(self._place_order(
                         product=product,
-                        order_type=ORDER_TYPE_BUY if position.action == Action.Sell else ORDER_TYPE_SELL,
+                        order_type=ORDER_TYPE_BUY if position['action'] == Action.Sell else ORDER_TYPE_SELL,
                         trade_type=ORDER_IMMEDIATE_OR_CANCEL,
                         price=0))
                     print('_mayday > _place_order > %s' % responses[-1])

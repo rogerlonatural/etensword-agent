@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import traceback
 
@@ -8,16 +9,7 @@ from etensword.api.base import process_order
 
 app = Flask(__name__)
 
-
-# def test():
-#     print('pull_commands_from_pubsub')
-#     stime = time.time() * 1000
-#     pull_message_from_pubsub()
-#     while True:
-#         time.sleep(0.1)
-#         if time.time() * 1000 - stime > 5000:
-#             return
-
+processed_commands = {}
 
 @app.route('/', methods=['POST'])
 def push_message_from_pubsub():
@@ -41,16 +33,26 @@ def push_message_from_pubsub():
             message_data = base64.b64decode(pubsub_message['data'])
             print(f'message_data: {message_data}')
 
+            payload = json.loads(message_data.decode('utf-8'))
+            command_id = payload['command_id']
+            if command_id in processed_commands:
+                print(f'Duplicated command: {command_id}')
+                return '', 204
+
+            processed_commands[command_id] = command_id
+
             class Message(object):
                 pass
 
             command_message = Message()
             command_message.data = message_data
             process_order(command_message)
+
     except:
         print('Error on push_message_from_pubsub > %s' % traceback.format_exc())
 
-    return ('', 204)
+    print(f'Message acknowledged {pubsub_message["message_id"]}')
+    return '', 204
 
 
 if __name__ == "__main__":
