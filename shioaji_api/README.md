@@ -56,23 +56,24 @@ C:\vagrant_data\\<代理程式名稱>\config\agent_settings.ini
   
   [order_agent]
   agent_id=< 填入你的agent_id(GUID) >
+  order_agent_type=shioaji_api      # 照填
   
   [shioaj_api]
   person_id=<身分證字號>
   passwd=<永豐金登入密碼>
-  ca_path=/app/config/Sinopac.pfx
+  ca_path=/app/config/Sinopac.pfx   # 照填
   ca_passwd=<永豐金憑證密碼>
   account_id=<永豐金帳號>
   
 
   [gcp]
   ...
-  SUBSCRIPTION=< 填入你的代理機名字 >
-  GOOGLE_APPLICATION_CREDENTIALS=< 填入你的金鑰檔(.json)路徑 >
+  SUBSCRIPTION=order_agent_<代理機名稱>
+  GOOGLE_APPLICATION_CREDENTIALS=/app/config/agent_key.json  # 照填
   
   
   [logging]
-  log_file_path=< 此處留白 >
+  log_file_path=    #此處留白
   log_level=INFO
 
 
@@ -311,3 +312,21 @@ Get ini_file path from environment variable ETENSWORD_AGENT_CONF => /app/config/
 
 ===== 以上步驟只需安裝時做一次, 之後啟動代理程式只需從 __***啟動 Vagrant***__  這步驟開始即可 =====
 
+## 注意事項
+
+* 要停止代理機程式: Control + C
+* 若要關機, 
+    - 先停止代理機程式 Control + C
+    - 再跳出 Vagrant
+      
+      ```
+      > exit
+
+      ``` 
+    - 再關閉 Vagrant
+    
+      ```
+      C:\vagrant\> vagrant halt  
+      ```
+    
+* 若要安裝第二台代理機程式, 可省略 ___***Install Vagrant 及 Centos-7-Docker VM***__ 這一大塊

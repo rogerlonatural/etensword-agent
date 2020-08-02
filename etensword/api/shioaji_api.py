@@ -29,8 +29,9 @@ class OrderAgent(OrderAgentBase):
         )
         logger.info(api.list_accounts())
 
-        self.account = [a for a in api.list_accounts() if a.account_id == self.config.get('shioaj_api', 'account_id')][
-            0]
+        account_id = self.config.get('shioaj_api', 'account_id')
+        logger.info('Login with account_id: %s' % account_id)
+        self.account = [a for a in api.list_accounts() if a.account_id == account_id][0]
         logger.info('Set default account: %s' % self.account)
 
         api.set_default_account(self.account)
@@ -40,13 +41,6 @@ class OrderAgent(OrderAgentBase):
             ca_passwd=self.config.get('shioaj_api', 'ca_passwd'),
             person_id=self.config.get('shioaj_api', 'person_id')
         )
-
-        # def place_cb(stat, msg):
-        #     print('my_place_callback')
-        #     print(stat, msg)
-        #
-        # api.set_order_callback(place_cb)
-
         self.api = api
 
     def _wrap_get_account_openposition_data(self, results):

@@ -6,3 +6,4 @@
 /.vscode/
 /shioaji_api/
 /smart_api/
+*.cert/
