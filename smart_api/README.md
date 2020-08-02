@@ -61,6 +61,7 @@
   
   [order_agent]
   agent_id=< 填入你的agent_id(GUID) >
+  order_agent_type=smart_api      # 照填
   
   
   [smart_api]
