@@ -37,7 +37,7 @@ def publish_message_to_pubsub(project_id, topic, msg_object):
                     "messaging": {
                         "initial_retry_delay_millis": 100,  # default: 100
                         "retry_delay_multiplier": 1.3,  # default: 1.3
-                        "max_retry_delay_millis": 60000,  # default: 60000
+                        "max_retry_delay_millis": 600000,  # default: 60000
                         "initial_rpc_timeout_millis": 5000,  # default: 25000
                         "rpc_timeout_multiplier": 1.0,  # default: 1.0
                         "max_rpc_timeout_millis": 600000,  # default: 30000
@@ -61,7 +61,7 @@ def publish_message_to_pubsub(project_id, topic, msg_object):
 
     def callback(message_future):
         # When timeout is unspecified, the exception method waits indefinitely.
-        if message_future.exception(timeout=30):
+        if message_future.exception(timeout=120):
             logger.error('Publishing message on {} threw an Exception {}.'.format(
                 topic, message_future.exception()))
         else:

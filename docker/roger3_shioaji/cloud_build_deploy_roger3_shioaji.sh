@@ -1,4 +1,7 @@
-BUILD_VERION=20200801.0
+
+BUILD_VERION=$(date '+%Y%m%d%H%M%S')
+echo $BUILD_VERION
+
 PROJECT_ID=etensword-order-agent
 SERVICE_NAME=roger3-shioaji
 
@@ -11,5 +14,6 @@ gcloud run deploy $SERVICE_NAME \
        --memory 1G \
        --region asia-east1 \
        --platform managed \
-       --no-allow-unauthenticated
+       --no-allow-unauthenticated \
+       --max-instances 1
 

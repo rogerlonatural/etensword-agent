@@ -4,12 +4,12 @@ import time
 import traceback
 from importlib import import_module
 
+import requests
 from google.cloud import pubsub_v1
 
 from etensword import get_config
 from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
-from etensword.utils import publish_message_to_pubsub
 
 BUILD_NUM = '20.0725.00'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
@@ -166,33 +166,43 @@ def pull_message_from_pubsub():
 
 
 def process_order(message):
-    config = get_config()
-    message_data = message.data.decode('utf-8')
-    logger.info("Received message: {}".format(message_data))
-
-    payload = json.loads(message_data)
-    agent = payload['agent'] if 'agent' in payload else ''
-    command_id = payload['command_id']
-    if agent and agent != config.get('order_agent', 'agent_id'):
-        logger.info('Skip command: %s of other agent' % command_id)
-        try:
-            message.ack()
-        except AttributeError:
-            pass
-        return
-
-    print('Execute command: %s' % payload)
-
-    agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
-    responses = agent.run(payload)
-
-    print('Publish feedback: %s' % responses)
-    command = payload['command']
+    responses = None
+    command = None
+    command_id = ''
     try:
+        config = get_config()
+        message_data = message.data.decode('utf-8')
+        logger.info("Received message: {}".format(message_data))
+
+        payload = json.loads(message_data)
+        agent = payload['agent'] if 'agent' in payload else ''
+        command_id = payload['command_id']
+        if agent and agent != config.get('order_agent', 'agent_id'):
+            logger.info('Skip command: %s of other agent' % command_id)
+            try:
+                message.ack()
+            except AttributeError:
+                pass
+            return
+
+        print('Execute command: %s' % payload)
+        command = payload['command']
+        retry = 0
+        while True:
+            agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
+            if agent or retry > 3:
+                break
+            retry += 1
+            time.sleep(retry)
+
+        responses = agent.run(payload)
+        print('Publish feedback: %s' % responses)
+
         feedback_execution_result(command, command_id, {
             'success': responses[-1]['success'],
             'results': responses
         })
+
     except:
         logger.error('Failed to parse responses, command: %s, responses: %s', (command, responses))
         logger.error(traceback.format_exc())
@@ -207,11 +217,26 @@ def process_order(message):
     logger.info('Message acknowledged. command_id: %s' % command_id)
 
 
+def send_agent_feedback(payload):
+    url = 'https://asia-east2-etensword.cloudfunctions.net/api_send_agent_feedback'
+    retry = 0
+    while True:
+        response = requests.post(url, data=json.dumps(payload))
+        if response.status_code == 204:
+            print('Feedback sent OK')
+            return
+        if retry > 3:
+            print('Failed to feedback after retry')
+            return
+        retry += 1
+        time.sleep(retry)
+
+
 def feedback_execution_result(command, command_id, result):
     config = get_config()
     logger.info('command result: %s' % result)
-    project_id = config.get('gcp', 'PROJECT_ID')
-    topic = config.get('gcp', 'TOPIC_FEEDBACK')
+    # project_id = config.get('gcp', 'PROJECT_ID')
+    # topic = config.get('gcp', 'TOPIC_FEEDBACK')
     msg_object = {
         'command': command,
         'message': {
@@ -220,7 +245,8 @@ def feedback_execution_result(command, command_id, result):
         'agent': config.get('order_agent', 'agent_id'),
         'command_id': command_id
     }
-    publish_message_to_pubsub(project_id, topic, msg_object)
+    send_agent_feedback(msg_object)
+    # publish_message_to_pubsub(project_id, topic, msg_object)
 
 
 def start(args):

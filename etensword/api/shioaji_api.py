@@ -66,8 +66,7 @@ class OrderAgent(OrderAgentBase):
                     result=self._wrap_get_account_openposition_data(positions.data())
                 )
             except Exception as e:
-                retry += 1
-                if retry > 1:
+                if retry > 3:
                     print(traceback.format_exc())
                     return dict(
                         api='get_account_openposition',
@@ -75,6 +74,7 @@ class OrderAgent(OrderAgentBase):
                         result=str(e)
                     )
                 time.sleep(retry)
+                retry += 1
 
     def _check_order_info(self, product, expected, timeout=5):
         print('_check_order_info > product: %s, expected: %s' % (product, expected))
@@ -116,19 +116,12 @@ class OrderAgent(OrderAgentBase):
 
     def _place_order(self, product, order_type, price=0, qty=1, trade_type=ORDER_REST_OF_DAY):
         try:
+            contract = self._retry_get_contract(product)
+            print('_place_order > contract for %s > %s' % (product, contract))
 
-            contract = self.api.Contracts.Futures[product]
-            print('_place_order > contract > %s' % contract)
+            order = self._retry_create_order(order_type, price, qty, trade_type)
 
-            order = self.api.Order(action="Buy" if order_type == ORDER_TYPE_BUY else "Sell",
-                                   price=price,
-                                   quantity=qty,
-                                   order_type=trade_type,
-                                   price_type=ORDER_PRICE_MARKET if price == 0 else ORDER_PRICE_LIMIT,
-                                   octype="Auto",
-                                   account=self.account)
-
-            result = self.api.place_order(contract, order)
+            result = self._retry_place_order(contract, order)
             order_status = result.status
             print('_place_order > order_status > %s' % order_status)
 
@@ -140,12 +133,63 @@ class OrderAgent(OrderAgentBase):
             )
 
         except Exception as e:
-            logger.info(traceback.format_exc())
+            print('_place_order > Error: %s' % traceback.format_exc())
             return dict(
                 api='place_order',
                 success=False,
                 result=str(e)
             )
+
+    def _retry_place_order(self, contract, order):
+        retry = 0
+        result = None
+        while True:
+            try:
+                result = self.api.place_order(contract, order)
+            except:
+                print('_retry_place_order > Error on place order %s' % traceback.format_exc())
+            if result:
+                return result
+            if retry > 3:
+                raise Exception('_retry_place_order > Failed to place order for %s %s' % (contract, order))
+            time.sleep(retry)
+            retry += 1
+
+    def _retry_create_order(self, order_type, price, qty, trade_type):
+        retry = 0
+        order = None
+        while True:
+            try:
+                order = self.api.Order(action="Buy" if order_type == ORDER_TYPE_BUY else "Sell",
+                                       price=price,
+                                       quantity=qty,
+                                       order_type=trade_type,
+                                       price_type=ORDER_PRICE_MARKET if price == 0 else ORDER_PRICE_LIMIT,
+                                       octype="Auto",
+                                       account=self.account)
+            except:
+                print('_retry_create_order > Error on create Order %s' % traceback.format_exc())
+            if order:
+                return order
+            if retry > 3:
+                raise Exception('_retry_create_order > Failed to create order for %s %s' % (order_type, price))
+            time.sleep(retry)
+            retry += 1
+
+    def _retry_get_contract(self, product):
+        retry = 0
+        contract = None
+        while True:
+            try:
+                contract = self.api.Contracts.Futures[product]
+            except:
+                print('_retry_get_contract > Error on get Contract %s' % traceback.format_exc())
+            if contract:
+                return contract
+            if retry > 3:
+                raise Exception('_retry_get_contract > Failed to get contract for %s' % product)
+            time.sleep(retry)
+            retry += 1
 
     def _mayday(self, product):
         print('_mayday > product: %s' % product)
