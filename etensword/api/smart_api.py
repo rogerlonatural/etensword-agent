@@ -26,8 +26,11 @@ class OrderAgent(OrderAgentBase):
             command_output = sp.run(args, capture_output=True, check=True)
             if command_output.returncode == 0:
                 result = command_output.stdout.decode('big5').strip('\r\n')
-                logger.info('Success to run command: %s , result: %s' % (args, result))
-                return True, result
+                if '請開啟Smart API' in result:
+                    return False, result
+                else:
+                    logger.info('Success to run command: %s , result: %s' % (args, result))
+                    return True, result
             else:
                 error_str = command_output.stderr.decode('big5').strip('\r\n')
                 logger.error('Failed to execute command: %s. Reason: %s' % (args, error_str))
@@ -184,6 +187,9 @@ class OrderAgent(OrderAgentBase):
     def MayDay(self, product):
         responses = []
         responses.append(self._change_product(product))
+        if not responses[-1]['success']:
+            return responses
+        responses.append(self._has_open_interest())
         if not responses[-1]['success']:
             return responses
         responses.append(self._mayday())
