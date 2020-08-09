@@ -144,12 +144,15 @@ class OrderAgent(OrderAgentBase):
             result = result.strip()
             if ',S,' in result or ',B,' in result or len(result) == 0:
                 break
+            if '請開啟Smart API' in result:
+                success = False
+                break
             if retry > 10:
                 result += '... Failed after retry %s times' % retry
                 success = False
                 break
             retry += 1
-            time.sleep(retry)
+            time.sleep(0.5 * retry)
         return dict(
             api=self.args_to_api_info(args),
             success=success,
