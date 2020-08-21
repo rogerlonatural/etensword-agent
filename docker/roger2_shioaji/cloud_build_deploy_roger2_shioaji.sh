@@ -17,3 +17,7 @@ gcloud run deploy $SERVICE_NAME \
        --no-allow-unauthenticated \
        --max-instances 1
 
+# NOTE:
+#    Need to grant access permission to
+#       member: cloud-run-pubsub-invoker@etensword.iam.gserviceaccount.com
+#       role: Cloud Run Invoker
