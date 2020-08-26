@@ -1,4 +1,5 @@
-import time, json
+import json
+import time
 import traceback
 
 import shioaji as sj
@@ -186,7 +187,7 @@ class OrderAgent(OrderAgentBase):
                 print('_retry_get_contract > Error on get Contract %s' % traceback.format_exc())
             if contract:
                 return contract
-            if retry > 3:
+            if retry > 10:
                 raise Exception('_retry_get_contract > Failed to get contract for %s' % product)
             time.sleep(retry)
             retry += 1
