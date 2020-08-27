@@ -11,7 +11,7 @@ from etensword import get_config
 from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
 
-BUILD_NUM = '20.0809.00'
+BUILD_NUM = '20.0827.00'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 
 
@@ -25,7 +25,7 @@ class OrderAgentFactory:
             return order_agent_class()
 
         except Exception as e:
-            print('Failed to get order agent %s' % order_agent_type)
+            print('Failed to get order agent %s, retry again' % order_agent_type)
             print(traceback.format_exc())
             return None
 
@@ -190,8 +190,10 @@ def process_order(message):
         retry = 0
         while True:
             agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
-            if agent or retry > 3:
+            if agent:
                 break
+            if retry > 3:
+                raise Exception('Failed to get order agent after 3 retry')
             retry += 1
             time.sleep(retry)
 
