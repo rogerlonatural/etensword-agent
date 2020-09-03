@@ -1,12 +1,20 @@
+import datetime
+import decimal
 import json
-import requests
 import socket
 import time
+
 from google.cloud import pubsub_v1
 
 from etensword.agent_logging import get_logger
 
 logger = get_logger(__name__)
+
+def my_json_converter(o):
+    if isinstance(o, decimal.Decimal):
+        return str(o)
+    if isinstance(o, datetime):
+        return o.strftime('%Y-%m-%d %H:%M:%S')
 
 
 def publish_message_to_pubsub(project_id, topic, msg_object):
@@ -67,6 +75,6 @@ def publish_message_to_pubsub(project_id, topic, msg_object):
         else:
             logger.info('Message sent OK, result: %s, command: %s' % (message_future.result(), msg_object))
 
-    message_future = publisher.publish(topic_path, data=json.dumps(msg_object).encode("UTF-8"))
+    message_future = publisher.publish(topic_path, data=json.dumps(msg_object, default=my_json_converter).encode("UTF-8"))
     message_future.add_done_callback(callback)
     return message_future
