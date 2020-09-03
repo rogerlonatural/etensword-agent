@@ -168,8 +168,11 @@ class OrderAgent(OrderAgentBase):
         while True:
             try:
                 result = self.api.place_order(contract, order)
+                if result and result.status in [Status.Inactive, Status.Failed, Status.Cancelled]:
+                    raise Exception('Got failed status in place_order %s' % result)
             except:
                 print('_retry_place_order > Error on place order %s' % traceback.format_exc())
+
             if result:
                 return result
             if retry > 3:
