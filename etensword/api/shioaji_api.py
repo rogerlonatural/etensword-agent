@@ -56,7 +56,7 @@ class OrderAgent(OrderAgentBase):
                         logger.info('Login with account_id: %s' % self.account.account_id)
                         break
 
-                if self.account:
+                if not self.account:
                     raise Exception('No account for account_id: %s' % self.account_id)
 
                 logger.info('Set default account: %s' % self.account)
@@ -124,6 +124,10 @@ class OrderAgent(OrderAgentBase):
         while True:
             response = self._has_open_interest()
             print('_check_order_info > _has_open_interest > %s' % response)
+
+            # _check_order_info > _has_open_interest > {'api': 'get_account_openposition', 'success': True,
+            # 'result': '[{"product": "MXFI0", "action": "Buy", "qty": 1, "price": 12608, "real_price": 12530}]'}
+
             if not response['success']:
                 return response
 
