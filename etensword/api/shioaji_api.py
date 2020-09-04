@@ -29,6 +29,7 @@ class OrderAgent(OrderAgentBase):
         self.account_id = self.config.get('shioaj_api', 'account_id')
         self.ca_passwd = self.config.get('shioaj_api', 'ca_passwd')
         self.ca_path = self.config.get('shioaj_api', 'ca_path')
+        self.account = None
 
         self._do_login()
 
@@ -76,9 +77,10 @@ class OrderAgent(OrderAgentBase):
                         success=False,
                         result=str(e)
                     )
-                retry += 1
-                time.sleep(retry * 2)
-                print('_do_login start retry %s' % retry)
+
+            retry += 1
+            time.sleep(retry)
+            print('_do_login start retry %s' % retry)
 
     def _wrap_get_account_openposition_data(self, results):
         wrap_results = [dict(
@@ -113,9 +115,9 @@ class OrderAgent(OrderAgentBase):
                         success=False,
                         result=str(e)
                     )
-                time.sleep(retry)
-                retry += 1
-                print('_has_open_interest start retry %s' % retry)
+            time.sleep(retry)
+            retry += 1
+            print('_has_open_interest start retry %s' % retry)
 
     def _check_order_info(self, product, expected, timeout=60):
         print('_check_order_info > product: %s, expected: %s' % (product, expected))
@@ -190,21 +192,24 @@ class OrderAgent(OrderAgentBase):
 
     def _retry_place_order(self, contract, order):
         retry = 0
-        result = None
         while True:
             try:
                 result = self.api.place_order(contract, order)
 
+                if not result:
+                    raise Exception('Failed to place order: %s' % result)
+
+                if result.status in [Status.Inactive, Status.Failed, Status.Cancelled, 'Inactive']:
+                    raise Exception('Got failed status in place_order %s, retry' % result.status)
+
+                return result
+
             except:
                 print('_retry_place_order > Error on place order %s' % traceback.format_exc())
-
-            if result and result.status not in [Status.Inactive, Status.Failed, Status.Cancelled]:
-                return result
 
             if retry > 3:
                 raise Exception('_retry_place_order > Failed to place order for %s %s' % (contract, order))
 
-            print('Got failed status in place_order %s, do login and retry' % result)
             if not self.account:
                 self._do_login()
             time.sleep(retry)
