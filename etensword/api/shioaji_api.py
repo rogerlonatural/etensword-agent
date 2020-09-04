@@ -24,44 +24,61 @@ class OrderAgent(OrderAgentBase):
         super().__init__()
 
         self.api = sj.Shioaji(backend='http', simulation=False)
+        self.person_id = self.config.get('shioaj_api', 'person_id')
+        self.passwd = self.config.get('shioaj_api', 'passwd')
+        self.account_id = self.config.get('shioaj_api', 'account_id')
+        self.ca_passwd = self.config.get('shioaj_api', 'ca_passwd')
+        self.ca_path = self.config.get('shioaj_api', 'ca_path')
 
         self._do_login()
+
+        logger.info('CA path: %s' % self.config.get('shioaj_api', 'ca_path'))
+        self.api.activate_ca(
+            ca_path=self.ca_path,
+            ca_passwd=self.ca_passwd,
+            person_id=self.person_id
+        )
+
 
     def _do_login(self):
         retry = 0
         while True:
             try:
                 self.api.login(
-                    self.config.get('shioaj_api', 'person_id'),
-                    self.config.get('shioaj_api', 'passwd')
+                    self.person_id,
+                    self.passwd
                 )
-                logger.info('login and list accounts >>> %s' % self.api.list_accounts())
-                account_id = self.config.get('shioaj_api', 'account_id')
-                logger.info('Login with account_id: %s' % account_id)
-                self.account = [a for a in self.api.list_accounts() if a.account_id == account_id][0]
+                all_accounts = self.api.list_accounts()
+                logger.info('login and list accounts >>> %s' % all_accounts)
+                for fa in all_accounts:
+                    if fa.account_id == self.account_id:
+                        self.account = fa
+                        logger.info('Login with account_id: %s' % self.account.account_id)
+                        break
+
+                if self.account:
+                    raise Exception('No account for account_id: %s' % self.account_id)
+
                 logger.info('Set default account: %s' % self.account)
                 self.api.set_default_account(self.account)
-                logger.info('CA path: %s' % self.config.get('shioaj_api', 'ca_path'))
-                self.api.activate_ca(
-                    ca_path=self.config.get('shioaj_api', 'ca_path'),
-                    ca_passwd=self.config.get('shioaj_api', 'ca_passwd'),
-                    person_id=self.config.get('shioaj_api', 'person_id')
-                )
+
                 return dict(
                     api='login',
                     success=True,
-                    result='Login with account_id: %s' % account_id
+                    result='Login with account_id: %s' % self.account_id
                 )
+
             except Exception as e:
                 if retry > 3:
-                    print(traceback.format_exc())
+                    print('Login failed after retry. %s' % traceback.format_exc())
                     return dict(
                         api='login',
                         success=False,
                         result=str(e)
                     )
-                time.sleep(retry)
                 retry += 1
+                time.sleep(retry * 2)
+                print('_do_login start retry %s' % retry)
 
     def _wrap_get_account_openposition_data(self, results):
         wrap_results = [dict(
@@ -77,6 +94,9 @@ class OrderAgent(OrderAgentBase):
         retry = 0
         while True:
             try:
+                if not self.account:
+                    self._do_login()
+
                 positions = self.api.get_account_openposition(product_type="0", query_type="0", account=self.account)
                 print('_has_open_interest > get_account_openposition > data: %s' % positions.data())
 
@@ -95,6 +115,7 @@ class OrderAgent(OrderAgentBase):
                     )
                 time.sleep(retry)
                 retry += 1
+                print('_has_open_interest start retry %s' % retry)
 
     def _check_order_info(self, product, expected, timeout=60):
         print('_check_order_info > product: %s, expected: %s' % (product, expected))
@@ -122,6 +143,7 @@ class OrderAgent(OrderAgentBase):
                 )
             retry += 1
             time.sleep(retry)
+            print('_check_order_info start retry %s' % retry)
 
     def _wrap_place_order_result(self, result):
         wrap_result = dict(
@@ -168,17 +190,22 @@ class OrderAgent(OrderAgentBase):
         while True:
             try:
                 result = self.api.place_order(contract, order)
-                if result and result.status in [Status.Inactive, Status.Failed, Status.Cancelled]:
-                    raise Exception('Got failed status in place_order %s' % result)
+
             except:
                 print('_retry_place_order > Error on place order %s' % traceback.format_exc())
 
-            if result:
+            if result and result.status not in [Status.Inactive, Status.Failed, Status.Cancelled]:
                 return result
+
             if retry > 3:
                 raise Exception('_retry_place_order > Failed to place order for %s %s' % (contract, order))
+
+            print('Got failed status in place_order %s, do login and retry' % result)
+            if not self.account:
+                self._do_login()
             time.sleep(retry)
             retry += 1
+            print('_retry_place_order start retry %s' % retry)
 
     def _retry_create_order(self, order_type, price, qty, trade_type):
         retry = 0
@@ -200,6 +227,7 @@ class OrderAgent(OrderAgentBase):
                 raise Exception('_retry_create_order > Failed to create order for %s %s' % (order_type, price))
             time.sleep(retry)
             retry += 1
+            print('_retry_create_order start retry %s ' % retry)
 
     def _retry_get_contract(self, product):
         retry = 0
@@ -211,19 +239,21 @@ class OrderAgent(OrderAgentBase):
                 print('_retry_get_contract > Error on get Contract %s' % traceback.format_exc())
             if contract:
                 return contract
-            if retry > 10:
+            if retry > 5:
                 raise Exception('_retry_get_contract > Failed to get contract for %s' % product)
-            self._do_login()
+            if not self.account:
+                self._do_login()
             time.sleep(retry)
             retry += 1
+            print('_retry_get_contract start retry %s' % retry)
 
     def _mayday(self, product):
         print('_mayday > product: %s' % product)
         responses = []
         try:
-            response = self._do_login()
-            if not response['success']:
-                return response
+            # response = self._do_login()
+            # if not response['success']:
+            #     return response
 
             response = self._has_open_interest()
             print('_mayday > _has_open_interest > %s' % response)
@@ -270,9 +300,9 @@ class OrderAgent(OrderAgentBase):
     def CloseAndBuy(self, product, price):
         print('CloseAndBuy > product: %s, price: %s' % (product, price))
         responses = []
-        responses.append(self._do_login())
-        if not responses[-1]['success']:
-            return responses
+        # responses.append(self._do_login())
+        # if not responses[-1]['success']:
+        #     return responses
 
         responses.append(self._has_open_interest())
         print('CloseAndBuy > _has_open_interest > %s' % responses[-1])
@@ -305,9 +335,9 @@ class OrderAgent(OrderAgentBase):
     def CloseAndSell(self, product, price):
         print('CloseAndSell > product: %s, price: %s' % (product, price))
         responses = []
-        responses.append(self._do_login())
-        if not responses[-1]['success']:
-            return responses
+        # responses.append(self._do_login())
+        # if not responses[-1]['success']:
+        #     return responses
 
         responses.append(self._has_open_interest())
         print('CloseAndSell > _has_open_interest > %s' % responses[-1])
