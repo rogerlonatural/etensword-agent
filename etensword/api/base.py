@@ -11,7 +11,7 @@ from etensword import get_config
 from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
 
-BUILD_NUM = '20.0904.01'
+BUILD_NUM = '20.0904.02'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 
 
@@ -36,6 +36,7 @@ class OrderAgentBase(object):
         if not config:
             config = get_config()
         self.config = config
+        self.trace_id = None
 
     def is_agent_active(self):
         agent_id = self.config.get('order_agent', 'agent_id')
@@ -72,6 +73,7 @@ class OrderAgentBase(object):
 
     def run(self, payload):
         command = payload['command']
+        self.trace_id = payload['command_id']
         try:
             props = payload['props'] if 'props' in payload else {}
             expire_at = payload['expire_at'] if 'expire_at' in payload else payload[
@@ -185,8 +187,9 @@ def process_order(message):
                 pass
             return
 
-        print('Execute command: %s' % payload)
         command = payload['command']
+        command_id = payload['command_id']
+        print('[%s] Execute command: %s' % (command_id, payload))
         retry = 0
         while True:
             agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
@@ -198,7 +201,7 @@ def process_order(message):
             time.sleep(retry)
 
         responses = agent.run(payload)
-        print('Publish feedback: %s' % responses)
+        print('[%s] Publish feedback: %s' % (command_id, responses))
 
         feedback_execution_result(command, command_id, {
             'success': responses[-1]['success'],
@@ -206,7 +209,7 @@ def process_order(message):
         })
 
     except:
-        logger.error('Failed to parse responses, command: %s, responses: %s', (command, responses))
+        logger.error('[%s] Failed to parse responses, command: %s, responses: %s', (command_id, command, responses))
         logger.error(traceback.format_exc())
         feedback_execution_result(command, command_id, {
             'success': False,
@@ -216,19 +219,19 @@ def process_order(message):
         message.ack()
     except AttributeError:
         pass
-    logger.info('Message acknowledged. command_id: %s' % command_id)
+    logger.info('[%s] Message acknowledged.' % command_id)
 
 
-def send_agent_feedback(payload):
+def send_agent_feedback(payload, command_id=''):
     url = 'https://asia-east2-etensword.cloudfunctions.net/api_send_agent_feedback'
     retry = 0
     while True:
         response = requests.post(url, data=json.dumps(payload))
         if response.status_code == 204:
-            print('Feedback sent OK')
+            print('[%s] Feedback sent OK' % command_id)
             return
         if retry > 3:
-            print('Failed to feedback after retry')
+            print('[%s] Failed to feedback after retry' % command_id)
             return
         retry += 1
         time.sleep(retry)
@@ -247,7 +250,7 @@ def feedback_execution_result(command, command_id, result):
         'agent': config.get('order_agent', 'agent_id'),
         'command_id': command_id
     }
-    send_agent_feedback(msg_object)
+    send_agent_feedback(msg_object, command_id)
     # publish_message_to_pubsub(project_id, topic, msg_object)
 
 
