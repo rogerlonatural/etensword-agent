@@ -8,10 +8,15 @@
 ### 取名字
 
 * 為自己的代理機取個名字(不能與其他代理機相同, 且只能由字母、數字、破折號 (-)、半形句號 (.)、底線 (_)、波浪號 (~)、百分比符號 (%) 或加號 (+) 組成，而且開頭必須為英文字母 (但不得以 goog 為開頭)。)
-* 用任意工具產生一組 agent_id (GUID), 並將此 GUID 填入設定檔
-    * 參考工具: https://www.uuidgenerator.net/
+
 * 將以上資料交給 Roger 註冊, 註冊完會拿到一個金鑰檔(.json), 請妥善保管
 
+### 產生GUID (agent_id)
+
+* 永豐金API支援一個客戶底下可以有多個account, 需要為每個account產生對應的 agent_id (UUID格式)
+
+* 用任意工具產生 agent_id (GUID), 並將此 agent_id 與對應的 account_id 填入設定檔(agent_setting.ini)的[agent_account_mapping]下面
+    * 參考工具: https://www.uuidgenerator.net/
 
 ### 建立目錄
 
@@ -55,7 +60,6 @@ C:\vagrant_data\\<代理程式名稱>\config\agent_settings.ini
   ```
   
   [order_agent]
-  agent_id=< 填入你的agent_id(GUID) >
   order_agent_type=shioaji_api      # 照填
   
   [shioaj_api]
@@ -63,7 +67,12 @@ C:\vagrant_data\\<代理程式名稱>\config\agent_settings.ini
   passwd=<永豐金登入密碼>
   ca_path=/app/config/Sinopac.pfx   # 照填
   ca_passwd=<永豐金憑證密碼>
-  account_id=<永豐金帳號>
+  
+  
+  [agent_account_mapping]           # 填入agent_id與account_id的對應
+  <填入你的agent_id1 >=<永豐金帳號1>
+  <填入你的agent_id2 >=<永豐金帳號2>
+  ...
   
 
   [gcp]
