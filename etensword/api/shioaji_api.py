@@ -19,8 +19,21 @@ ORDER_PRICE_LIMIT = 'LMT'  # 委託價格
 
 
 class OrderAgent(OrderAgentBase):
+    __instance = None
+    __last_login_time = None
+
+    @staticmethod
+    def getInstance():
+        """ Static access method. """
+        if OrderAgent.__instance == None:
+            OrderAgent()
+        return OrderAgent.__instance
 
     def __init__(self):
+        """ Virtually private constructor. """
+        if OrderAgent.__instance != None:
+            raise Exception("This class is a singleton, use getInstance() instead!")
+
         super().__init__()
 
         self.api = sj.Shioaji(backend='http', simulation=False)
@@ -36,6 +49,10 @@ class OrderAgent(OrderAgentBase):
         logger.info('<== Agent created with build version')  # use logger to print build version
 
         self._do_login()
+
+        OrderAgent.__last_login_time = time.time()
+        OrderAgent.__instance = self
+
 
     def __del__(self):
         self._do_logout()
@@ -329,6 +346,12 @@ class OrderAgent(OrderAgentBase):
             return responses
 
     def InitAgent(self, agent_id):
+
+        if time.time() - OrderAgent.__last_login_time > 60 * 60 * 3:
+            self._do_logout()
+            self._do_login()
+            OrderAgent.__last_login_time = time.time()
+
         self._set_account(agent_id)
 
     def HasOpenInterest(self, product):

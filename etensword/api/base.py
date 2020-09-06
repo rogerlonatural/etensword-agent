@@ -10,37 +10,35 @@ from etensword import get_config
 from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
 
-BUILD_NUM = '20.0906.00'
+BUILD_NUM = '20.0906.01'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 
 
 class OrderAgentFactory:
     _agent_instances = {}
-    _start_time = None
 
     @staticmethod
     def get_order_agent(order_agent_type='smart_api'):
-        try:
-            if not OrderAgentFactory._agent_instances:
-                OrderAgentFactory._start_time = time.time()
+        retry = 0
+        while True:
+            try:
+                if order_agent_type not in OrderAgentFactory._agent_instances:
+                    order_agent_module = import_module('etensword.api.%s' % order_agent_type, 'OrderAgent')
+                    order_agent_class = getattr(order_agent_module, 'OrderAgent')
+                    order_agent = order_agent_class()
+                    if order_agent:
+                        OrderAgentFactory._agent_instances[order_agent_type] = order_agent
 
-            if OrderAgentFactory._start_time and time.time() - OrderAgentFactory._start_time > 60 * 60 * 3:
-                print('Clear agent instances due to timeout')
-                OrderAgentFactory._agent_instances = {}
+                return OrderAgentFactory._agent_instances[order_agent_type]
 
-            if order_agent_type not in OrderAgentFactory._agent_instances:
-                order_agent_module = import_module('etensword.api.%s' % order_agent_type, 'OrderAgent')
-                order_agent_class = getattr(order_agent_module, 'OrderAgent')
-                order_agent = order_agent_class()
-                if order_agent:
-                    OrderAgentFactory._agent_instances[order_agent_type] = order_agent
-
-            return OrderAgentFactory._agent_instances[order_agent_type]
-
-        except Exception as e:
-            print('Failed to get order agent %s, retry again' % order_agent_type)
-            print(traceback.format_exc().replace('\n', '>>'))
-            return None
+            except Exception as e:
+                print('Failed to get order agent %s, retry again' % order_agent_type)
+                print(traceback.format_exc().replace('\n', '>>'))
+                retry += 1
+                if retry > 3:
+                    print('Failed to get order agent %s after retry' % order_agent_type)
+                    return
+                time.sleep(retry)
 
 
 class OrderAgentBase(object):
