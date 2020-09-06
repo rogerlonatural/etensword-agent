@@ -1,6 +1,9 @@
-from etensword.api.base import OrderAgentFactory
-import shioaji as sj
 import pandas as pd
+import shioaji as sj
+
+from etensword import get_config
+from etensword.api.base import OrderAgentFactory
+
 
 def test_shioaji_api_close_and_buy():
     agent = OrderAgentFactory.get_order_agent('shioaji_api')
@@ -57,8 +60,12 @@ def test():
 def main():
     # test_shioaji_api_close_and_buy()
     # test_shioaji_api_has_open_interest()
-    test()
+    # test()
 
+    config = get_config()
+    agent_id_options = config.options('agent_account_mapping')
+    agent_account_mapping = { agent_id: config.get('agent_account_mapping', agent_id) for agent_id in agent_id_options}
+    print(agent_account_mapping)
 
 
 if __name__ == '__main__':

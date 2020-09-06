@@ -26,58 +26,73 @@ class OrderAgent(OrderAgentBase):
         self.api = sj.Shioaji(backend='http', simulation=False)
         self.person_id = self.config.get('shioaj_api', 'person_id')
         self.passwd = self.config.get('shioaj_api', 'passwd')
-        self.account_id = self.config.get('shioaj_api', 'account_id')
         self.ca_passwd = self.config.get('shioaj_api', 'ca_passwd')
         self.ca_path = self.config.get('shioaj_api', 'ca_path')
+
+        agent_ids = self.config.options('agent_account_mapping')
+        self.agent_account_mapping = {agent_id: self.config.get('agent_account_mapping', agent_id) for agent_id in
+                                      agent_ids}
         self.account = None
+        logger.info('<== Agent created with build version')  # use logger to print build version
 
         self._do_login()
 
-        logger.info('[%s] Initialize CA: %s' % (self.trace_id, self.ca_path))
-        self.api.activate_ca(
-            ca_path=self.ca_path,
-            ca_passwd=self.ca_passwd,
-            person_id=self.person_id
-        )
-
     def __del__(self):
+        self._do_logout()
+
+    def _do_logout(self):
         try:
             print('[%s] Logout and leave' % self.trace_id)
-            self.api.logout()
+            if self.api:
+                self.api.logout()
         except:
-            print('[%s] Error on __del__, ignored %s' % (self.trace_id, traceback.format_exc()))
+            print('[%s] Error on __del__, ignored %s' % (self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
+
+    def _set_account(self, agent_id):
+        self.account_id = self.agent_account_mapping[agent_id]
+        print('[%s] Set account %s' % (self.trace_id, self.account_id))
+
+        all_accounts = self.api.list_accounts()
+        print('[%s] Login successfully and list accounts >>> %s' % (self.trace_id, all_accounts))
+        for fa in all_accounts:
+            if fa.account_id == self.account_id:
+                self.account = fa
+                print('[%s] Login with account_id: %s' % (self.trace_id, self.account.account_id))
+                break
+
+        if not self.account:
+            raise Exception('No account for account_id: %s' % self.account_id)
+
+        print('[%s] Set default account: %s' % (self.trace_id, self.account))
+        self.api.set_default_account(self.account)
 
     def _do_login(self):
         retry = 0
         while True:
             try:
                 self.api.login(self.person_id, self.passwd)
-                all_accounts = self.api.list_accounts()
-                logger.info('[%s] login and list accounts >>> %s' % (self.trace_id, all_accounts))
-                for fa in all_accounts:
-                    if fa.account_id == self.account_id:
-                        self.account = fa
-                        logger.info('[%s] Login with account_id: %s' % (self.trace_id, self.account.account_id))
-                        break
 
-                if not self.account:
-                    raise Exception('No account for account_id: %s' % self.account_id)
-
-                logger.info('[%s] Set default account: %s' % (self.trace_id, self.account))
-                self.api.set_default_account(self.account)
+                print('[%s] Initialize CA: %s' % (self.trace_id, self.ca_path))
+                self.api.activate_ca(
+                    ca_path=self.ca_path,
+                    ca_passwd=self.ca_passwd,
+                    person_id=self.person_id
+                )
 
                 return dict(
                     api='login',
                     success=True,
-                    result='Login with account_id: %s' % self.account.account_id
+                    result='Login with person_id: %s' % self.person_id
                 )
 
             except Exception as e:
                 if self.person_id and self.passwd:
-                    print('[%s] Failed to login with id: %s****, pwd: %s****' % (self.trace_id, self.person_id[0], self.passwd[0]))
+                    print('[%s] Failed to login with id: %s****, pwd: %s**** . Error: %s' % (
+                        self.trace_id, self.person_id[0], self.passwd[0], traceback.format_exc().replace('\n', '>>')))
 
                 if retry > 3:
-                    print('[%s] Login failed after retry. %s' % (self.trace_id, traceback.format_exc()))
+                    print('[%s] Login failed after retry. %s' % (
+                        self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
                     return dict(
                         api='login',
                         success=False,
@@ -103,10 +118,15 @@ class OrderAgent(OrderAgentBase):
         while True:
             try:
                 if not self.account:
-                    self._do_login()
+                    return dict(
+                        api='get_account_openposition',
+                        success=False,
+                        result='Not login yet, account: %s' % self.account
+                    )
 
                 positions = self.api.get_account_openposition(product_type="0", query_type="0", account=self.account)
-                print('[%s] _has_open_interest > get_account_openposition > data: %s' % (self.trace_id, positions.data()))
+                print(
+                    '[%s] _has_open_interest > get_account_openposition > data: %s' % (self.trace_id, positions.data()))
 
                 return dict(
                     api='get_account_openposition',
@@ -115,7 +135,8 @@ class OrderAgent(OrderAgentBase):
                 )
             except Exception as e:
                 if retry > 3:
-                    print(traceback.format_exc())
+                    print('[%s] _has_open_interest with account %s. Error: %s' % (
+                        self.trace_id, self.account, traceback.format_exc().replace('\n', ' >> ')))
                     return dict(
                         api='get_account_openposition',
                         success=False,
@@ -189,7 +210,7 @@ class OrderAgent(OrderAgentBase):
             )
 
         except Exception as e:
-            print('[%s] _place_order > Error: %s' % (self.trace_id, traceback.format_exc()))
+            print('[%s] _place_order > Error: %s' % (self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
             return dict(
                 api='place_order',
                 success=False,
@@ -200,7 +221,8 @@ class OrderAgent(OrderAgentBase):
         retry = 0
         while True:
             try:
-                result = self.api.place_order(contract, order)
+                result = self.api.place_order(contract, order, timeout=30000)
+                print('[%s] place order result %s' % (self.trace_id, result))
 
                 if not result:
                     raise Exception('Failed to place order: %s' % result)
@@ -211,13 +233,12 @@ class OrderAgent(OrderAgentBase):
                 return result
 
             except:
-                print('[%s] _retry_place_order > Error on place order %s' % (self.trace_id, traceback.format_exc()))
+                print('[%s] _retry_place_order > Error on place order %s' % (
+                    self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
 
             if retry > 3:
                 raise Exception('_retry_place_order > Failed to place order for %s %s' % (contract, order))
 
-            if not self.account:
-                self._do_login()
             time.sleep(retry)
             retry += 1
             print('[%s] _retry_place_order start retry %s' % (self.trace_id, retry))
@@ -235,7 +256,8 @@ class OrderAgent(OrderAgentBase):
                                        octype="Auto",
                                        account=self.account)
             except:
-                print('[%s] _retry_create_order > Error on create Order %s' % (self.trace_id, traceback.format_exc()))
+                print('[%s] _retry_create_order > Error on create Order %s' % (
+                    self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
             if order:
                 return order
             if retry > 3:
@@ -251,13 +273,13 @@ class OrderAgent(OrderAgentBase):
             try:
                 contract = self.api.Contracts.Futures[product]
             except:
-                print('[%s] _retry_get_contract > Error on get Contract %s' % (self.trace_id, traceback.format_exc()))
+                print('[%s] _retry_get_contract > Error on get Contract %s' % (
+                    self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
             if contract:
                 return contract
             if retry > 5:
                 raise Exception('_retry_get_contract > Failed to get contract for %s' % product)
-            if not self.account:
-                self._do_login()
+
             time.sleep(retry)
             retry += 1
             print('[%s] _retry_get_contract start retry %s' % (self.trace_id, retry))
@@ -297,7 +319,7 @@ class OrderAgent(OrderAgentBase):
             return responses
 
         except Exception as e:
-            logger.error(traceback.format_exc())
+            logger.error(traceback.format_exc().replace('\n', ' >> '))
             response = dict(
                 api='mayday',
                 success=False,
@@ -305,6 +327,9 @@ class OrderAgent(OrderAgentBase):
             )
             responses.append(response)
             return responses
+
+    def InitAgent(self, agent_id):
+        self._set_account(agent_id)
 
     def HasOpenInterest(self, product):
         print('[%s] HasOpenInterest > product: %s' % (self.trace_id, product))

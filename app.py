@@ -49,7 +49,7 @@ def push_message_from_pubsub():
             process_order(command_message)
 
     except:
-        print('Error on push_message_from_pubsub > %s' % traceback.format_exc())
+        print('Error on push_message_from_pubsub > %s' % traceback.format_exc().replace('\n',' | '))
 
     print(f'Message acknowledged {pubsub_message["message_id"]}')
     return '', 204

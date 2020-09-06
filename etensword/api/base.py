@@ -1,5 +1,4 @@
 import json
-import os
 import time
 import traceback
 from importlib import import_module
@@ -11,22 +10,36 @@ from etensword import get_config
 from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
 
-BUILD_NUM = '20.0904.02'
+BUILD_NUM = '20.0906.00'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 
 
 class OrderAgentFactory:
+    _agent_instances = {}
+    _start_time = None
 
     @staticmethod
     def get_order_agent(order_agent_type='smart_api'):
         try:
-            order_agent_module = import_module('etensword.api.%s' % order_agent_type, 'OrderAgent')
-            order_agent_class = getattr(order_agent_module, 'OrderAgent')
-            return order_agent_class()
+            if not OrderAgentFactory._agent_instances:
+                OrderAgentFactory._start_time = time.time()
+
+            if OrderAgentFactory._start_time and time.time() - OrderAgentFactory._start_time > 60 * 60 * 3:
+                print('Clear agent instances due to timeout')
+                OrderAgentFactory._agent_instances = {}
+
+            if order_agent_type not in OrderAgentFactory._agent_instances:
+                order_agent_module = import_module('etensword.api.%s' % order_agent_type, 'OrderAgent')
+                order_agent_class = getattr(order_agent_module, 'OrderAgent')
+                order_agent = order_agent_class()
+                if order_agent:
+                    OrderAgentFactory._agent_instances[order_agent_type] = order_agent
+
+            return OrderAgentFactory._agent_instances[order_agent_type]
 
         except Exception as e:
             print('Failed to get order agent %s, retry again' % order_agent_type)
-            print(traceback.format_exc())
+            print(traceback.format_exc().replace('\n', '>>'))
             return None
 
 
@@ -37,43 +50,13 @@ class OrderAgentBase(object):
             config = get_config()
         self.config = config
         self.trace_id = None
-
-    def is_agent_active(self):
-        agent_id = self.config.get('order_agent', 'agent_id')
-        if os.path.exists(agent_id):
-            with open(agent_id, 'r') as f:
-                status = f.readline()
-                return status == 'Active'
-        else:
-            return True
-
-    def SetAgentActive(self, status):
-        responses = []
-        api = 'set_agent_active'
-        try:
-            agent_id = self.config.get('order_agent', 'agent_id')
-            s = 'Active' if status else 'Inactive'
-            with open(agent_id, 'w') as f:
-                f.write(s)
-            response = dict(
-                api=api,
-                success=True,
-                result='Agent is now %s' % s
-            )
-        except:
-            err_str = 'Failed to set agent status. Error: %s' % traceback.format_exc()
-            print(err_str)
-            response = dict(
-                api=api,
-                success=False,
-                result=err_str
-            )
-        responses.append(response)
-        return responses
+        self.agent_id = None
+        self.account_id = None
 
     def run(self, payload):
         command = payload['command']
         self.trace_id = payload['command_id']
+        self.agent_id = payload['agent']
         try:
             props = payload['props'] if 'props' in payload else {}
             expire_at = payload['expire_at'] if 'expire_at' in payload else payload[
@@ -84,23 +67,16 @@ class OrderAgentBase(object):
                     success=False,
                     result='Command is not executed because it is expired (Timeout=%s sec)' % AgentCommand.COMMAND_TIMEOUT
                 )]
-            if command != AgentCommand.ENABLE_AGENT and not self.is_agent_active():
-                return [dict(
-                    api=command,
-                    success=False,
-                    result='Command is not executed because agent is inactive'
-                )]
+
             if command == AgentCommand.CHECK_AGENT:
                 return [dict(
                     api=command,
                     success=True,
                     result='I am great!'
                 )]
-            if command == AgentCommand.DISABLE_AGENT:
-                return self.SetAgentActive(False)
 
-            if command == AgentCommand.ENABLE_AGENT:
-                return self.SetAgentActive(True)
+            # Real agent related commands below
+            self.InitAgent(self.agent_id)
 
             if command == AgentCommand.CHECK_OPEN_INTEREST:
                 return self.HasOpenInterest(props['product'])
@@ -116,12 +92,14 @@ class OrderAgentBase(object):
 
         except:
             msg = 'Failed to execute command. Error: %s' % traceback.format_exc()
-            logger.error(msg)
+            logger.error('[%s] %s' % (self.trace_id, msg))
             return [dict(
                 api=command,
                 success=False,
                 result=msg
             )]
+        finally:
+            self.CloseAgent()
 
     def HasOpenInterest(self, product):
         raise NotImplementedError()
@@ -134,6 +112,12 @@ class OrderAgentBase(object):
 
     def CloseAndBuy(self, product, price):
         raise NotImplementedError()
+
+    def InitAgent(self, agent_id):
+        pass
+
+    def CloseAgent(self):
+        pass
 
 
 def pull_message_from_pubsub():
@@ -171,18 +155,22 @@ def process_order(message):
     responses = None
     command = None
     command_id = ''
+    agent_id = ''
     try:
         config = get_config()
         message_data = message.data.decode('utf-8')
         logger.info("Received message: {}".format(message_data))
 
         payload = json.loads(message_data)
-        agent = payload['agent'] if 'agent' in payload else ''
+        agent_id = payload['agent'] if 'agent' in payload else ''
         command_id = payload['command_id']
-        if agent and agent != config.get('order_agent', 'agent_id'):
-            logger.info('Skip command: %s of other agent' % command_id)
+
+        agent_ids = config.options('agent_account_mapping')
+        if agent_id and agent_id not in agent_ids:
+            logger.info('[%s] Skip command of other agent' % command_id)
             try:
                 message.ack()
+                print('[%s] Message acknowledged.' % command_id)
             except AttributeError:
                 pass
             return
@@ -190,28 +178,20 @@ def process_order(message):
         command = payload['command']
         command_id = payload['command_id']
         print('[%s] Execute command: %s' % (command_id, payload))
-        retry = 0
-        while True:
-            agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
-            if agent:
-                break
-            if retry > 3:
-                raise Exception('Failed to get order agent after 3 retry')
-            retry += 1
-            time.sleep(retry)
 
-        responses = agent.run(payload)
+        order_agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
+        responses = order_agent.run(payload)
+
         print('[%s] Publish feedback: %s' % (command_id, responses))
-
-        feedback_execution_result(command, command_id, {
+        feedback_execution_result(agent_id, command, command_id, {
             'success': responses[-1]['success'],
             'results': responses
         })
 
     except:
-        logger.error('[%s] Failed to parse responses, command: %s, responses: %s', (command_id, command, responses))
-        logger.error(traceback.format_exc())
-        feedback_execution_result(command, command_id, {
+        print('[%s] Failed to parse responses, command: %s, responses: %s' % (command_id, command, responses))
+        print('[%s] %s' % (command_id, traceback.format_exc().replace('\n', '>>')))
+        feedback_execution_result(agent_id, command, command_id, {
             'success': False,
             'results': responses
         })
@@ -219,7 +199,7 @@ def process_order(message):
         message.ack()
     except AttributeError:
         pass
-    logger.info('[%s] Message acknowledged.' % command_id)
+    print('[%s] Message acknowledged.' % command_id)
 
 
 def send_agent_feedback(payload, command_id=''):
@@ -230,16 +210,16 @@ def send_agent_feedback(payload, command_id=''):
         if response.status_code == 204:
             print('[%s] Feedback sent OK' % command_id)
             return
+
         if retry > 3:
-            print('[%s] Failed to feedback after retry' % command_id)
+            print('[%s] Failed to feedback after retry %s %s' % (command_id, response.status_code, response.text))
             return
         retry += 1
         time.sleep(retry)
 
 
-def feedback_execution_result(command, command_id, result):
-    config = get_config()
-    logger.info('command result: %s' % result)
+def feedback_execution_result(agent, command, command_id, result):
+    logger.info('[%s] Feedback command result: %s' % (command_id, result))
     # project_id = config.get('gcp', 'PROJECT_ID')
     # topic = config.get('gcp', 'TOPIC_FEEDBACK')
     msg_object = {
@@ -247,7 +227,7 @@ def feedback_execution_result(command, command_id, result):
         'message': {
             'execution_result': json.dumps(result)
         },
-        'agent': config.get('order_agent', 'agent_id'),
+        'agent': agent,
         'command_id': command_id
     }
     send_agent_feedback(msg_object, command_id)

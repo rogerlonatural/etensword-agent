@@ -3,9 +3,9 @@ BUILD_VERION=$(date '+%Y%m%d%H%M%S')
 echo $BUILD_VERION
 
 PROJECT_ID=etensword-order-agent
-SERVICE_NAME=kelly333-shioaji
+SERVICE_NAME=roger3-shioaji
 
-cd /Users/roger_lo/Documents/workspace/etensword-agent/docker/kelly333_shioaji/
+cd /Users/roger_lo/Documents/workspace/etensword-agent/docker/roger_shioaji/
 
 gcloud builds submit --timeout=3600 --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$BUILD_VERION
 

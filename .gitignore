@@ -7,3 +7,4 @@
 /shioaji_api/
 /smart_api/
 *.cert/
+/.cert/
