@@ -149,6 +149,8 @@ def pull_message_from_pubsub():
             streaming_pull_future.cancel()
 
 
+processed_commands = {}
+
 def process_order(message):
     responses = None
     command = None
@@ -173,8 +175,18 @@ def process_order(message):
                 pass
             return
 
+        if command_id not in processed_commands:
+            processed_commands[command_id] = command_id
+        else:
+            logger.info(f'Skip duplicated command: {command_id}')
+            try:
+                message.ack()
+                print('[%s] Message acknowledged.' % command_id)
+            except AttributeError:
+                pass
+            return
+
         command = payload['command']
-        command_id = payload['command_id']
         print('[%s] Execute command: %s' % (command_id, payload))
 
         order_agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
@@ -215,7 +227,6 @@ def send_agent_feedback(payload, command_id=''):
         retry += 1
         time.sleep(retry)
 
-
 def feedback_execution_result(agent, command, command_id, result):
     logger.info('[%s] Feedback command result: %s' % (command_id, result))
     # project_id = config.get('gcp', 'PROJECT_ID')
@@ -230,7 +241,6 @@ def feedback_execution_result(agent, command, command_id, result):
     }
     send_agent_feedback(msg_object, command_id)
     # publish_message_to_pubsub(project_id, topic, msg_object)
-
 
 def start(args):
     while True:
