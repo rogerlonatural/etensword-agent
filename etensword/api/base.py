@@ -164,9 +164,19 @@ def process_order(message):
         payload = json.loads(message_data)
         agent_id = payload['agent'] if 'agent' in payload else ''
         command_id = payload['command_id']
+        command = payload['command']
+        print('[%s] Execute command: %s' % (command_id, payload))
 
-        agent_ids = config.options('agent_account_mapping')
-        if agent_id and agent_id not in agent_ids:
+        is_other_agent = False
+        if config.has_section('agent_account_mapping'):
+            agent_ids = config.options('agent_account_mapping')
+            if agent_id and agent_id not in agent_ids:
+                is_other_agent = True
+
+        elif agent_id != config.get('order_agent', 'agent_id'):
+            is_other_agent = True
+
+        if is_other_agent:
             logger.info('[%s] Skip command of other agent' % command_id)
             try:
                 message.ack()
@@ -185,9 +195,6 @@ def process_order(message):
             except AttributeError:
                 pass
             return
-
-        command = payload['command']
-        print('[%s] Execute command: %s' % (command_id, payload))
 
         order_agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
         responses = order_agent.run(payload)
