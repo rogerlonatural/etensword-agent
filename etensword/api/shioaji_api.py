@@ -1,6 +1,7 @@
 import json
 import time
 import traceback
+from os import path
 
 import shioaji as sj
 from shioaji.constant import Action, Status
@@ -30,6 +31,8 @@ class OrderAgent(OrderAgentBase):
         self.ca_passwd = self.config.get('shioaj_api', 'ca_passwd')
         self.ca_path = self.config.get('shioaj_api', 'ca_path')
 
+        self.verify_ca_path()
+
         agent_ids = self.config.options('agent_account_mapping')
         self.agent_account_mapping = {agent_id: self.config.get('agent_account_mapping', agent_id) for agent_id in
                                       agent_ids}
@@ -40,6 +43,15 @@ class OrderAgent(OrderAgentBase):
         self.__last_login_time = time.time()
         self.trace_id = ''
 
+    def verify_ca_path(self):
+        retry = 0
+        while True:
+            if path.exists(self.ca_path):
+                break
+            if retry > 2:
+                raise Exception('CA path not exists %s' % self.ca_path)
+            retry += 1
+            time.sleep(1)
 
     def __del__(self):
         self._do_logout()
@@ -94,7 +106,7 @@ class OrderAgent(OrderAgentBase):
                     print('[%s] Failed to login with id: %s****, pwd: %s**** . Error: %s' % (
                         self.trace_id, self.person_id[0], self.passwd[0], traceback.format_exc().replace('\n', '>>')))
 
-                if retry > 3:
+                if retry > 5:
                     print('[%s] Login failed after retry. %s' % (
                         self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
                     return dict(
@@ -334,8 +346,8 @@ class OrderAgent(OrderAgentBase):
             return responses
 
     def InitAgent(self, agent_id):
-        if self.__last_login_time or time.time() - self.__last_login_time > 60 * 60 * 3:
-            print('Re-initiate agent: %s' % agent_id)
+        if self.__last_login_time and time.time() - self.__last_login_time > 60 * 60 * 1:
+            print('Re-initiate agent: %s, last login time: %s' % (agent_id, self.__last_login_time))
             self._do_logout()
             self._do_login()
             self.__last_login_time = time.time()
