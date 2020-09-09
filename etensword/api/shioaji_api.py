@@ -19,20 +19,8 @@ ORDER_PRICE_LIMIT = 'LMT'  # 委託價格
 
 
 class OrderAgent(OrderAgentBase):
-    __instance = None
-    __last_login_time = None
-
-    @staticmethod
-    def getInstance():
-        """ Static access method. """
-        if OrderAgent.__instance == None:
-            OrderAgent()
-        return OrderAgent.__instance
 
     def __init__(self):
-        """ Virtually private constructor. """
-        if OrderAgent.__instance != None:
-            raise Exception("This class is a singleton, use getInstance() instead!")
 
         super().__init__()
 
@@ -49,9 +37,8 @@ class OrderAgent(OrderAgentBase):
         logger.info('<== Agent created with build version')  # use logger to print build version
 
         self._do_login()
-
-        OrderAgent.__last_login_time = time.time()
-        OrderAgent.__instance = self
+        self.__last_login_time = time.time()
+        self.trace_id = ''
 
 
     def __del__(self):
@@ -59,9 +46,9 @@ class OrderAgent(OrderAgentBase):
 
     def _do_logout(self):
         try:
-            print('[%s] Logout and leave' % self.trace_id)
             if self.api:
                 self.api.logout()
+                print('[%s***] Logout and leave' % self.person_id[:3])
         except:
             print('[%s] Error on __del__, ignored %s' % (self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
 
@@ -70,11 +57,11 @@ class OrderAgent(OrderAgentBase):
         print('[%s] Set account %s' % (self.trace_id, self.account_id))
 
         all_accounts = self.api.list_accounts()
-        print('[%s] Login successfully and list accounts >>> %s' % (self.trace_id, all_accounts))
+        print('[%s] list accounts >>> %s' % (self.trace_id, all_accounts))
         for fa in all_accounts:
             if fa.account_id == self.account_id:
                 self.account = fa
-                print('[%s] Login with account_id: %s' % (self.trace_id, self.account.account_id))
+                print('[%s] Set account_id: %s' % (self.trace_id, self.account.account_id))
                 break
 
         if not self.account:
@@ -245,6 +232,7 @@ class OrderAgent(OrderAgentBase):
                     raise Exception('Failed to place order: %s' % result)
 
                 if result.status in [Status.Inactive, Status.Failed, Status.Cancelled, 'Inactive']:
+                    self._do_login()
                     raise Exception('Got failed status in place_order %s, retry' % result.status)
 
                 return result
@@ -346,11 +334,11 @@ class OrderAgent(OrderAgentBase):
             return responses
 
     def InitAgent(self, agent_id):
-
-        if time.time() - OrderAgent.__last_login_time > 60 * 60 * 3:
+        if self.__last_login_time or time.time() - self.__last_login_time > 60 * 60 * 3:
+            print('Re-initiate agent: %s' % agent_id)
             self._do_logout()
             self._do_login()
-            OrderAgent.__last_login_time = time.time()
+            self.__last_login_time = time.time()
 
         self._set_account(agent_id)
 

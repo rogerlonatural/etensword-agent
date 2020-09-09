@@ -10,26 +10,21 @@ from etensword import get_config
 from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
 
-BUILD_NUM = '20.0907.00'
+BUILD_NUM = '20.0909.00'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 
 
 class OrderAgentFactory:
-    _agent_instances = {}
 
     @staticmethod
     def get_order_agent(order_agent_type='smart_api'):
         retry = 0
         while True:
             try:
-                if order_agent_type not in OrderAgentFactory._agent_instances:
-                    order_agent_module = import_module('etensword.api.%s' % order_agent_type, 'OrderAgent')
-                    order_agent_class = getattr(order_agent_module, 'OrderAgent')
-                    order_agent = order_agent_class()
-                    if order_agent:
-                        OrderAgentFactory._agent_instances[order_agent_type] = order_agent
-
-                return OrderAgentFactory._agent_instances[order_agent_type]
+                order_agent_module = import_module('etensword.api.%s' % order_agent_type, 'OrderAgent')
+                order_agent_class = getattr(order_agent_module, 'OrderAgent')
+                order_agent = order_agent_class()
+                return order_agent
 
             except Exception as e:
                 print('Failed to get order agent %s, retry again' % order_agent_type)
@@ -59,7 +54,7 @@ class OrderAgentBase(object):
             props = payload['props'] if 'props' in payload else {}
             expire_at = payload['expire_at'] if 'expire_at' in payload else payload[
                                                                                 'publish_time'] + AgentCommand.COMMAND_TIMEOUT
-            if time.time() > expire_at:
+            if time.time() > expire_at and command != AgentCommand.CHECK_OPEN_INTEREST:
                 return [dict(
                     api=command,
                     success=False,
