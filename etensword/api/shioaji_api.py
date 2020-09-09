@@ -66,10 +66,9 @@ class OrderAgent(OrderAgentBase):
 
     def _set_account(self, agent_id):
         self.account_id = self.agent_account_mapping[agent_id]
-        print('[%s] Set account %s' % (self.trace_id, self.account_id))
+        print('[%s] Set account %s for agent: %s' % (self.trace_id, self.account_id, agent_id))
 
         all_accounts = self.api.list_accounts()
-        print('[%s] list accounts >>> %s' % (self.trace_id, all_accounts))
         for fa in all_accounts:
             if fa.account_id == self.account_id:
                 self.account = fa
@@ -346,12 +345,7 @@ class OrderAgent(OrderAgentBase):
             return responses
 
     def InitAgent(self, agent_id):
-        if self.__last_login_time and time.time() - self.__last_login_time > 60 * 60 * 1:
-            print('Re-initiate agent: %s, last login time: %s' % (agent_id, self.__last_login_time))
-            self._do_logout()
-            self._do_login()
-            self.__last_login_time = time.time()
-
+        print('[%s] InitAgent > agent: %s' % (self.trace_id, agent_id))
         self._set_account(agent_id)
 
     def HasOpenInterest(self, product):

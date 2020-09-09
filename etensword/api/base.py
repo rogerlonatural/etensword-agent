@@ -10,13 +10,11 @@ from etensword import get_config
 from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
 
-BUILD_NUM = '20.0909.01'
+BUILD_NUM = '20.0909.03'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 
 
 class OrderAgentFactory:
-
-    __order_agents = {}
 
     @staticmethod
     def get_order_agent(order_agent_type='smart_api'):
@@ -26,9 +24,7 @@ class OrderAgentFactory:
                 order_agent_module = import_module('etensword.api.%s' % order_agent_type, 'OrderAgent')
                 order_agent_class = getattr(order_agent_module, 'OrderAgent')
                 order_agent = order_agent_class()
-                if order_agent_type in OrderAgentFactory.__order_agents:
-                    OrderAgentFactory.__order_agents[order_agent_type] = order_agent
-                return OrderAgentFactory.__order_agents[order_agent_type]
+                return order_agent
 
             except Exception as e:
                 print('Failed to get order agent %s, retry again' % order_agent_type)
