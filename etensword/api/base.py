@@ -1,4 +1,5 @@
 import json
+import threading
 import time
 import traceback
 from importlib import import_module
@@ -13,6 +14,7 @@ from etensword.agent_logging import get_logger
 BUILD_NUM = '20.0909.03'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 
+lock = threading.Lock()
 
 class OrderAgentFactory:
 
@@ -192,14 +194,15 @@ def process_order(message):
                 pass
             return
 
-        order_agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
-        responses = order_agent.run(payload)
+        with lock:
+            order_agent = OrderAgentFactory.get_order_agent(order_agent_type=config.get('order_agent', 'order_agent_type'))
+            responses = order_agent.run(payload)
 
-        print('[%s] Publish feedback: %s' % (command_id, responses))
-        feedback_execution_result(agent_id, command, command_id, {
-            'success': responses[-1]['success'],
-            'results': responses
-        })
+            print('[%s] Publish feedback: %s' % (command_id, responses))
+            feedback_execution_result(agent_id, command, command_id, {
+                'success': responses[-1]['success'],
+                'results': responses
+            })
 
     except:
         print('[%s] Failed to parse responses, command: %s, responses: %s' % (command_id, command, responses))

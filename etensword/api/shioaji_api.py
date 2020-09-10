@@ -53,16 +53,13 @@ class OrderAgent(OrderAgentBase):
             retry += 1
             time.sleep(1)
 
-    def __del__(self):
-        self._do_logout()
-
     def _do_logout(self):
         try:
             if self.api:
                 self.api.logout()
-                print('[%s***] Logout and leave' % self.person_id[:3])
+                print('[%s][%s***] Logout and leave' % (self.trace_id, self.person_id[:3]))
         except:
-            print('[%s] Error on __del__, ignored %s' % (self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
+            print('[%s] Error on _do_logout, ignored %s' % (self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
 
     def _set_account(self, agent_id):
         self.account_id = self.agent_account_mapping[agent_id]
@@ -347,6 +344,11 @@ class OrderAgent(OrderAgentBase):
     def InitAgent(self, agent_id):
         print('[%s] InitAgent > agent: %s' % (self.trace_id, agent_id))
         self._set_account(agent_id)
+
+    def CloseAgent(self):
+        print('[%s] CloseAgent > agent: %s' % (self.trace_id, self.agent_id))
+        self._do_logout()
+
 
     def HasOpenInterest(self, product):
         print('[%s] HasOpenInterest > product: %s' % (self.trace_id, product))
