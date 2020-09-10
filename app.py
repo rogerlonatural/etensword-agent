@@ -14,7 +14,7 @@ processed_commands = {}
 @app.route('/', methods=['POST'])
 def push_message_from_pubsub():
     envelope = request.get_json()
-    print(f'envelope: {envelope}')
+    print(f'Start to process order >>> envelope: {envelope}')
     if not envelope:
         msg = 'no Pub/Sub message received'
         print(f'error: {msg}')
