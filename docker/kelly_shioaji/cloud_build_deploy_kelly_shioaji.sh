@@ -11,7 +11,7 @@ gcloud builds submit --timeout=3600 --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$BUIL
 
 gcloud run deploy $SERVICE_NAME \
        --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$BUILD_VERION \
-       --memory 2G \
+       --memory 4G \
        --region asia-east1 \
        --platform managed \
        --no-allow-unauthenticated \

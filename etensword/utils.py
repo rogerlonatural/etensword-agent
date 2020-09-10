@@ -69,7 +69,7 @@ def publish_message_to_pubsub(project_id, topic, msg_object):
 
     def callback(message_future):
         # When timeout is unspecified, the exception method waits indefinitely.
-        if message_future.exception(timeout=120):
+        if message_future.exception(timeout=150):
             logger.error('Publishing message on {} threw an Exception {}.'.format(
                 topic, message_future.exception()))
         else:
