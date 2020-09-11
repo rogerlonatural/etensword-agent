@@ -14,6 +14,10 @@ ORDER_TYPE_BUY = 'B'
 ORDER_TYPE_SELL = 'S'
 ORDER_PRICE_LIMIT = 'LMT'  # 委託價格
 
+EXPECTED_OPEN_INTEREST_ANY = 'Any'
+EXPECTED_OPEN_INTEREST_BUY = 'B'
+EXPECTED_OPEN_INTEREST_SELL = 'S'
+EXPECTED_OPEN_INTEREST_EMPTY = 'Empty'
 
 class OrderAgent(OrderAgentBase):
 
@@ -135,7 +139,8 @@ class OrderAgent(OrderAgentBase):
             result=result
         )
 
-    def _has_open_interest(self):
+    # expected = ( Any | B | S | Empty )
+    def _has_open_interest(self, expected=EXPECTED_OPEN_INTEREST_ANY):
         api = 'OnOpenInterest.exe'
         on_open_interest_path = self.config.get('smart_api', 'exec_path') + api
         args = [on_open_interest_path]
@@ -145,8 +150,19 @@ class OrderAgent(OrderAgentBase):
             if not success:
                 break
             result = result.strip()
-            if ',S,' in result or ',B,' in result or len(result) == 0:
+
+            if expected == EXPECTED_OPEN_INTEREST_BUY and ',B,' in result:
                 break
+
+            if expected == EXPECTED_OPEN_INTEREST_SELL and ',S,' in result:
+                break
+
+            if expected == EXPECTED_OPEN_INTEREST_EMPTY and len(result) == 0:
+                break
+
+            if expected == EXPECTED_OPEN_INTEREST_ANY and ',S,' in result or ',B,' in result or len(result) == 0:
+                break
+
             if '請開啟Smart API' in result:
                 success = False
                 break
@@ -155,7 +171,7 @@ class OrderAgent(OrderAgentBase):
                 success = False
                 break
             retry += 1
-            time.sleep(0.5 * retry)
+            time.sleep(retry)
         return dict(
             api=self.args_to_api_info(args),
             success=success,
@@ -193,6 +209,11 @@ class OrderAgent(OrderAgentBase):
         if not responses[-1]['success']:
             return responses
         responses.append(self._mayday())
+
+        if not responses[-1]['success']:
+            return responses
+        responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_EMPTY))
+
         return responses
 
     def CloseAndSell(self, product, price):
@@ -228,6 +249,10 @@ class OrderAgent(OrderAgentBase):
                 responses.append(self._get_account(order_number))
                 if not responses[-1]['success']:
                     return responses
+                responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_EMPTY))
+                if not responses[-1]['success']:
+                    return responses
+
             elif ',S,' in responses[-1]['result']:
                 return responses
 
@@ -239,6 +264,10 @@ class OrderAgent(OrderAgentBase):
         # check order accepted
         order_number = responses[-1]['result']
         responses.append(self._get_account(order_number))
+
+        if not responses[-1]['success']:
+            return responses
+        responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_SELL))
 
         return responses
 
@@ -263,6 +292,10 @@ class OrderAgent(OrderAgentBase):
                 responses.append(self._get_account(order_number))
                 if not responses[-1]['success']:
                     return responses
+                responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_EMPTY))
+                if not responses[-1]['success']:
+                    return responses
+
             elif ',B,' in responses[-1]['result']:
                 return responses
 
@@ -274,6 +307,10 @@ class OrderAgent(OrderAgentBase):
         # check order accepted
         order_number = responses[-1]['result']
         responses.append(self._get_account(order_number))
+
+        if not responses[-1]['success']:
+            return responses
+        responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_BUY))
 
         return responses
 
