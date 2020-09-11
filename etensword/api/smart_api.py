@@ -141,6 +141,7 @@ class OrderAgent(OrderAgentBase):
 
     # expected = ( Any | B | S | Empty )
     def _has_open_interest(self, expected=EXPECTED_OPEN_INTEREST_ANY):
+        logger.info('_has_open_interest >> expected: %s' % (expected, ))
         api = 'OnOpenInterest.exe'
         on_open_interest_path = self.config.get('smart_api', 'exec_path') + api
         args = [on_open_interest_path]
@@ -160,7 +161,7 @@ class OrderAgent(OrderAgentBase):
             if expected == EXPECTED_OPEN_INTEREST_EMPTY and len(result) == 0:
                 break
 
-            if expected == EXPECTED_OPEN_INTEREST_ANY and ',S,' in result or ',B,' in result or len(result) == 0:
+            if expected == EXPECTED_OPEN_INTEREST_ANY and (',S,' in result or ',B,' in result or len(result) == 0):
                 break
 
             if '請開啟Smart API' in result:
@@ -171,7 +172,7 @@ class OrderAgent(OrderAgentBase):
                 success = False
                 break
             retry += 1
-            time.sleep(retry)
+            time.sleep(0.5 * retry)
         return dict(
             api=self.args_to_api_info(args),
             success=success,
