@@ -19,6 +19,7 @@ EXPECTED_OPEN_INTEREST_BUY = 'B'
 EXPECTED_OPEN_INTEREST_SELL = 'S'
 EXPECTED_OPEN_INTEREST_EMPTY = 'Empty'
 
+
 class OrderAgent(OrderAgentBase):
 
     def args_to_api_info(self, args):
@@ -141,7 +142,7 @@ class OrderAgent(OrderAgentBase):
 
     # expected = ( Any | B | S | Empty )
     def _has_open_interest(self, expected=EXPECTED_OPEN_INTEREST_ANY):
-        logger.info('_has_open_interest >> expected: %s' % (expected, ))
+        logger.info('_has_open_interest >> expected: %s' % (expected,))
         api = 'OnOpenInterest.exe'
         on_open_interest_path = self.config.get('smart_api', 'exec_path') + api
         args = [on_open_interest_path]
@@ -200,7 +201,6 @@ class OrderAgent(OrderAgentBase):
         responses.append(self._has_open_interest())
         return responses
 
-
     def MayDay(self, product):
         responses = []
         responses.append(self._change_product(product))
@@ -227,18 +227,6 @@ class OrderAgent(OrderAgentBase):
         if not responses[-1]['success']:
             return responses
 
-        # retry = 0
-        # while True:
-        #     responses.append(self._has_open_interest())
-        #     if not responses[-1]['success']:
-        #         return responses
-        #     result = responses[-1]['result'].strip()
-        #     if ',S,' in result or ',B,' in result or len(result) == 0:
-        #         break
-        #     if retry > 3:
-        #         return  responses
-        #     retry += 1
-
         # close first, verify the open interest is BUY
         if len(responses[-1]['result']) > 0:
             if ',B,' in responses[-1]['result']:
@@ -250,9 +238,6 @@ class OrderAgent(OrderAgentBase):
                 responses.append(self._get_account(order_number))
                 if not responses[-1]['success']:
                     return responses
-                responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_EMPTY))
-                if not responses[-1]['success']:
-                    return responses
 
             elif ',S,' in responses[-1]['result']:
                 return responses
@@ -262,9 +247,8 @@ class OrderAgent(OrderAgentBase):
         if not responses[-1]['success']:
             return responses
 
-        # check order accepted
-        order_number = responses[-1]['result']
-        responses.append(self._get_account(order_number))
+        # check ALL order accepted
+        responses.append(self._get_account())
 
         if not responses[-1]['success']:
             return responses
@@ -293,9 +277,6 @@ class OrderAgent(OrderAgentBase):
                 responses.append(self._get_account(order_number))
                 if not responses[-1]['success']:
                     return responses
-                responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_EMPTY))
-                if not responses[-1]['success']:
-                    return responses
 
             elif ',B,' in responses[-1]['result']:
                 return responses
@@ -305,13 +286,11 @@ class OrderAgent(OrderAgentBase):
         if not responses[-1]['success']:
             return responses
 
-        # check order accepted
-        order_number = responses[-1]['result']
-        responses.append(self._get_account(order_number))
+        # check ALL order accepted
+        responses.append(self._get_account())
 
         if not responses[-1]['success']:
             return responses
         responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_BUY))
 
         return responses
-
