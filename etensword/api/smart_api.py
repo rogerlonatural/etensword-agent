@@ -247,8 +247,8 @@ class OrderAgent(OrderAgentBase):
         if not responses[-1]['success']:
             return responses
 
-        # check ALL order accepted
-        responses.append(self._get_account())
+        order_number = responses[-1]['result']
+        responses.append(self._get_account(order_number))
 
         if not responses[-1]['success']:
             return responses
@@ -286,8 +286,8 @@ class OrderAgent(OrderAgentBase):
         if not responses[-1]['success']:
             return responses
 
-        # check ALL order accepted
-        responses.append(self._get_account())
+        order_number = responses[-1]['result']
+        responses.append(self._get_account(order_number))
 
         if not responses[-1]['success']:
             return responses
