@@ -11,7 +11,7 @@ from etensword import get_config
 from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
 
-BUILD_NUM = '20.0916.00'
+BUILD_NUM = '20.0917.00'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 
 lock = threading.Lock()

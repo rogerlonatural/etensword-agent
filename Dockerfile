@@ -1,4 +1,4 @@
-FROM gcr.io/etensword-order-agent/agent-base:20200826.0
+FROM gcr.io/etensword-order-agent/agent-base:20200917.0
 
 # Copy local code to the container image.
 ENV APP_HOME /app
