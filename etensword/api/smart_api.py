@@ -213,6 +213,7 @@ class OrderAgent(OrderAgentBase):
 
         if not responses[-1]['success']:
             return responses
+        responses.append(self._change_product(product))
         responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_EMPTY))
 
         return responses
@@ -252,6 +253,7 @@ class OrderAgent(OrderAgentBase):
 
         if not responses[-1]['success']:
             return responses
+        responses.append(self._change_product(product))
         responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_SELL))
 
         return responses
@@ -291,6 +293,7 @@ class OrderAgent(OrderAgentBase):
 
         if not responses[-1]['success']:
             return responses
+        responses.append(self._change_product(product))
         responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_BUY))
 
         return responses
