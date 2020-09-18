@@ -234,14 +234,14 @@ class OrderAgent(OrderAgentBase):
         while True:
             try:
                 result = self.api.place_order(contract, order, timeout=30000)
-                print('[%s] place order result %s' % (self.trace_id, result))
+                print('[%s] place order result: %s' % (self.trace_id, result))
 
                 if not result:
-                    raise Exception('Failed to place order: %s' % result)
+                    raise Exception('[%s] Failed to place order: %s' % (self.trace_id, result))
 
-                if result.status in [Status.Inactive, Status.Failed, Status.Cancelled, 'Inactive']:
+                if result.status and result.status.value == 'Inactive' or result.status == Status.Inactive:
                     self._do_login()
-                    raise Exception('Got failed status in place_order %s, retry' % result.status)
+                    raise Exception('[%s] Got failed status in place_order %s, retry' % (self.trace_id, result.status))
 
                 return result
 
@@ -250,7 +250,7 @@ class OrderAgent(OrderAgentBase):
                     self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
 
             if retry > 3:
-                raise Exception('_retry_place_order > Failed to place order for %s %s' % (contract, order))
+                raise Exception('[%s] _retry_place_order > Failed to place order for %s %s' % (self.trace_id, contract, order))
 
             time.sleep(retry)
             retry += 1
@@ -290,12 +290,13 @@ class OrderAgent(OrderAgentBase):
                     self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
             if contract:
                 return contract
-            if retry > 5:
+            if retry > 3:
                 raise Exception('_retry_get_contract > Failed to get contract for %s' % product)
 
             time.sleep(retry)
             retry += 1
             print('[%s] _retry_get_contract start retry %s' % (self.trace_id, retry))
+            self._do_login()
 
     def _mayday(self, product):
         print('[%s] _mayday > product: %s' % (self.trace_id, product))

@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import threading
 import traceback
 
 from flask import Flask, request
@@ -10,6 +11,8 @@ from etensword.api.base import process_order
 app = Flask(__name__)
 
 processed_commands = {}
+
+lock = threading.Lock()
 
 @app.route('/', methods=['POST'])
 def push_message_from_pubsub():
@@ -46,7 +49,9 @@ def push_message_from_pubsub():
 
             command_message = Message()
             command_message.data = message_data
-            process_order(command_message)
+
+            with lock:
+                process_order(command_message)
 
     except:
         print('Error on push_message_from_pubsub > %s' % traceback.format_exc().replace('\n',' | '))
