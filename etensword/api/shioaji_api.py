@@ -239,7 +239,7 @@ class OrderAgent(OrderAgentBase):
                 if not result:
                     raise Exception('[%s] Failed to place order: %s' % (self.trace_id, result))
 
-                if result.status and result.status.value == 'Inactive' or result.status == Status.Inactive:
+                if result.status and (result.status == 'Inactive' or result.status == Status.Inactive):
                     self._do_login()
                     raise Exception('[%s] Got failed status in place_order %s, retry' % (self.trace_id, result.status))
 
