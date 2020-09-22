@@ -10,7 +10,7 @@ from etensword import get_config
 from etensword.agent_commands import AgentCommand
 from etensword.agent_logging import get_logger
 
-BUILD_NUM = '20.0918.01'
+BUILD_NUM = '20.0922.00'
 logger = get_logger('EtenSwordAgent-' + BUILD_NUM)
 
 class OrderAgentFactory:
@@ -207,6 +207,7 @@ def process_order(message):
             'success': False,
             'results': responses
         })
+
     try:
         message.ack()
     except AttributeError:
@@ -217,31 +218,42 @@ def process_order(message):
 def send_agent_feedback(payload, command_id=''):
     url = 'https://asia-east2-etensword.cloudfunctions.net/api_send_agent_feedback'
     retry = 0
+    status_code = None
+    response_text = None
     while True:
-        response = requests.post(url, data=json.dumps(payload))
-        if response.status_code == 204:
-            print('[%s] Feedback sent OK' % command_id)
-            return
+        try:
+            response = requests.post(url, data=json.dumps(payload))
+            status_code = response.status_code
+            response_text = response.text
+            if status_code == 204:
+                print('[%s] Feedback sent OK' % command_id)
+                return
+        except:
+            print('[%s] Failed to send feedback, retry, %s' % (command_id, traceback.format_exc().replace('\n', '>>')))
 
         if retry > 3:
-            print('[%s] Failed to feedback after retry %s %s' % (command_id, response.status_code, response.text))
+            print('[%s] Failed to feedback after retry %s %s' % (command_id, status_code, response_text))
             return
         retry += 1
         time.sleep(retry)
 
 def feedback_execution_result(agent, command, command_id, result):
-    logger.info('[%s] Feedback command result: %s' % (command_id, result))
-    # project_id = config.get('gcp', 'PROJECT_ID')
-    # topic = config.get('gcp', 'TOPIC_FEEDBACK')
-    msg_object = {
-        'command': command,
-        'message': {
-            'execution_result': json.dumps(result)
-        },
-        'agent': agent,
-        'command_id': command_id
-    }
-    send_agent_feedback(msg_object, command_id)
+    try:
+        logger.info('[%s] Feedback command result: %s' % (command_id, result))
+        # project_id = config.get('gcp', 'PROJECT_ID')
+        # topic = config.get('gcp', 'TOPIC_FEEDBACK')
+        msg_object = {
+            'command': command,
+            'message': {
+                'execution_result': json.dumps(result)
+            },
+            'agent': agent,
+            'command_id': command_id
+        }
+        send_agent_feedback(msg_object, command_id)
+    except:
+        logger.info('[%s] Failed to feedback execution result, ignored' % command_id)
+        pass
     # publish_message_to_pubsub(project_id, topic, msg_object)
 
 def start(args):
