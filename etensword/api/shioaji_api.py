@@ -39,7 +39,6 @@ class OrderAgent(OrderAgentBase):
         self.account = None
         logger.info('<== Agent created with build version')  # use logger to print build version
 
-        self._do_login()
         self.__last_login_time = time.time()
         self.trace_id = ''
 
@@ -78,7 +77,7 @@ class OrderAgent(OrderAgentBase):
         print('[%s] Set default account: %s' % (self.trace_id, self.account))
         self.api.set_default_account(self.account)
 
-    def _do_login(self):
+    def _do_login(self, no_retry=False):
         retry = 0
         while True:
             try:
@@ -101,8 +100,7 @@ class OrderAgent(OrderAgentBase):
                 if self.person_id and self.passwd:
                     print('[%s] Failed to login with id: %s****, pwd: %s**** . Error: %s' % (
                         self.trace_id, self.person_id[0], self.passwd[0], traceback.format_exc().replace('\n', '>>')))
-
-                if retry > 5:
+                if no_retry or retry > 6:
                     print('[%s] Login failed after retry. %s' % (
                         self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
                     return dict(
@@ -110,9 +108,8 @@ class OrderAgent(OrderAgentBase):
                         success=False,
                         result=str(e)
                     )
-
             retry += 1
-            time.sleep(retry)
+            time.sleep(retry * 1.5)
             print('[%s] _do_login start retry %s' % (self.trace_id, retry))
 
     def _wrap_get_account_openposition_data(self, results):
@@ -146,7 +143,8 @@ class OrderAgent(OrderAgentBase):
                     result=self._wrap_get_account_openposition_data(positions.data())
                 )
             except Exception as e:
-                if retry > 3:
+                self._do_login(no_retry=True)
+                if retry > 5:
                     print('[%s] _has_open_interest with account %s. Error: %s' % (
                         self.trace_id, self.account, traceback.format_exc().replace('\n', ' >> ')))
                     return dict(
@@ -344,6 +342,7 @@ class OrderAgent(OrderAgentBase):
 
     def InitAgent(self, agent_id):
         print('[%s] InitAgent > agent: %s' % (self.trace_id, agent_id))
+        self._do_login()
         self._set_account(agent_id)
 
     def CloseAgent(self):
