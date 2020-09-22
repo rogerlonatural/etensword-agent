@@ -97,7 +97,7 @@ C:\vagrant_data\\<代理程式名稱>\start.sh
 
 ```
 
-docker run --rm \
+docker run --restart=always --rm \
        -v /vagrant_data/<代理程式名稱>/config:/app/config  \
        gcr.io/etensword-order-agent/agent-app:latest 
 
