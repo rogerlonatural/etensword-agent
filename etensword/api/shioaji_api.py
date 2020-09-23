@@ -58,7 +58,8 @@ class OrderAgent(OrderAgentBase):
                 self.api.logout()
                 print('[%s][%s***] Logout and leave' % (self.trace_id, self.person_id[:3]))
         except:
-            print('[%s] Error on _do_logout, ignored %s' % (self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
+            print(
+                '[%s] Error on _do_logout, ignored %s' % (self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
 
     def _set_account(self, agent_id):
         self.account_id = self.agent_account_mapping[agent_id]
@@ -248,7 +249,8 @@ class OrderAgent(OrderAgentBase):
                     self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
 
             if retry > 3:
-                raise Exception('[%s] _retry_place_order > Failed to place order for %s %s' % (self.trace_id, contract, order))
+                raise Exception(
+                    '[%s] _retry_place_order > Failed to place order for %s %s' % (self.trace_id, contract, order))
 
             time.sleep(retry)
             retry += 1
@@ -342,13 +344,22 @@ class OrderAgent(OrderAgentBase):
 
     def InitAgent(self, agent_id):
         print('[%s] InitAgent > agent: %s' % (self.trace_id, agent_id))
-        self._do_login()
-        self._set_account(agent_id)
+        retry = 0
+        while True:
+            try:
+                self._do_login()
+                self._set_account(agent_id)
+                return
+            except:
+                retry += 1
+                if retry > 5:
+                    print('[%s] Failed on InitAgent %s after retry. Error: %s' % (
+                    self.trace_id, agent_id, traceback.format_exc().replace('\n', '>>')))
+                time.sleep(retry)
 
     def CloseAgent(self):
         print('[%s] CloseAgent > agent: %s' % (self.trace_id, self.agent_id))
         self._do_logout()
-
 
     def HasOpenInterest(self, product):
         print('[%s] HasOpenInterest > product: %s' % (self.trace_id, product))
