@@ -84,32 +84,26 @@ class OrderAgent(OrderAgentBase):
             result=result
         )
 
-    def _get_account(self, order_number='ALL', timeout=3):
+    def _get_account(self, order_number='ALL'):
         api = 'GetAccount.exe'
         get_account_exec_path = self.config.get('smart_api', 'exec_path') + api
         args = [get_account_exec_path, order_number]
-        stime = time.time()
         try_time = 1
         while True:
             success, result = self._exec_command(args)
             if not success:
                 break
             if '全部成交' in result:
+                success = True
                 break
             if '委託失敗' in result:
                 success = False
                 break
-            if 'Nodata' in result:
-                success = False
-                if timeout == 0:
-                    break
-                elif time.time() - stime > timeout * 60:
-                    result += '... after %s minutes' % str(timeout)
-                    break
+
             if try_time > 3:
                 success = False
                 break
-            time.sleep(try_time)
+            time.sleep(try_time * 3)
             try_time += 1
 
         return dict(
@@ -119,15 +113,30 @@ class OrderAgent(OrderAgentBase):
         )
 
     def _mayday(self):
-        api = 'MayDay.exe'
-        mayday_exec_path = self.config.get('smart_api', 'exec_path') + api
-        args = [mayday_exec_path]
-        success, result = self._exec_command(args)
-        return dict(
-            api=self.args_to_api_info(args),
-            success=success,
-            result=result
-        )
+        retry = 0
+        while True:
+            try:
+                api = 'MayDay.exe'
+                mayday_exec_path = self.config.get('smart_api', 'exec_path') + api
+                args = [mayday_exec_path]
+                success, result = self._exec_command(args)
+                if 'MaydaySuccess' not in result:
+                    raise Exception('No MaydaySuccess in response: %s, retry' % result)
+                return dict(
+                    api=self.args_to_api_info(args),
+                    success=success,
+                    result=result
+                )
+            except:
+                pass
+            if retry > 3:
+                return dict(
+                    api=self.args_to_api_info(args),
+                    success=False,
+                    result=result
+                )
+            retry += 1
+            time.sleep(retry)
 
     def _is_order_finished(self):
         api = 'GetUnfinished.exe'
@@ -141,7 +150,7 @@ class OrderAgent(OrderAgentBase):
         )
 
     # expected = ( Any | B | S | Empty )
-    def _has_open_interest(self, expected=EXPECTED_OPEN_INTEREST_ANY):
+    def _has_open_interest(self, expected=EXPECTED_OPEN_INTEREST_ANY, noretry=False):
         logger.info('_has_open_interest >> expected: %s' % (expected,))
         api = 'OnOpenInterest.exe'
         on_open_interest_path = self.config.get('smart_api', 'exec_path') + api
@@ -152,6 +161,9 @@ class OrderAgent(OrderAgentBase):
             if not success:
                 break
             result = result.strip()
+
+            if noretry:
+                break
 
             if expected == EXPECTED_OPEN_INTEREST_BUY and ',B,' in result:
                 break
@@ -168,12 +180,12 @@ class OrderAgent(OrderAgentBase):
             if '請開啟Smart API' in result:
                 success = False
                 break
-            if retry > 10:
+            if retry > 3:
                 result += '... Failed after retry %s times' % retry
                 success = False
                 break
             retry += 1
-            time.sleep(0.5 * retry)
+            time.sleep(2 * retry)
         return dict(
             api=self.args_to_api_info(args),
             success=success,
@@ -211,10 +223,10 @@ class OrderAgent(OrderAgentBase):
             return responses
         responses.append(self._mayday())
 
-        if not responses[-1]['success']:
-            return responses
-        responses.append(self._change_product(product))
-        responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_EMPTY))
+        # if not responses[-1]['success']:
+        #     return responses
+        # responses.append(self._change_product(product))
+        # responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_EMPTY))
 
         return responses
 
@@ -254,7 +266,7 @@ class OrderAgent(OrderAgentBase):
         if not responses[-1]['success']:
             return responses
         responses.append(self._change_product(product))
-        responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_SELL))
+        responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_ANY, noretry=True))
 
         return responses
 
@@ -294,6 +306,6 @@ class OrderAgent(OrderAgentBase):
         if not responses[-1]['success']:
             return responses
         responses.append(self._change_product(product))
-        responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_BUY))
+        responses.append(self._has_open_interest(EXPECTED_OPEN_INTEREST_ANY, noretry=True))
 
         return responses

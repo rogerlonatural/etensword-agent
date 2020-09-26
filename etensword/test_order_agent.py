@@ -17,9 +17,9 @@ class TestOrderAgent(TestCase):
 
     def test_smart_api_get_account(self):
         agent = OrderAgentFactory.get_order_agent('smart_api')
-        result = agent._get_account('ordernumber1', 0)
+        result = agent._get_account('ordernumber1')
         print(result)
-        result = agent._get_account('ordernumber1', 1)
+        result = agent._get_account('ordernumber1')
         print(result)
 
     def test_shioaji_api_close_and_sell(self):
