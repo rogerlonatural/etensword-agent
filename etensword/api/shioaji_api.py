@@ -82,7 +82,7 @@ class OrderAgent(OrderAgentBase):
         retry = 0
         while True:
             try:
-                self.api.login(self.person_id, self.passwd, contracts_timeout=90000)
+                self.api.login(self.person_id, self.passwd, contracts_timeout=30000)
 
                 print('[%s] Initialize CA: %s' % (self.trace_id, self.ca_path))
                 self.api.activate_ca(
