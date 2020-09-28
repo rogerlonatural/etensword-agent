@@ -25,7 +25,7 @@ class OrderAgent(OrderAgentBase):
 
         super().__init__()
 
-        self.api = sj.Shioaji(backend='http', simulation=False)
+        self.api = None
         self.person_id = self.config.get('shioaj_api', 'person_id')
         self.passwd = self.config.get('shioaj_api', 'passwd')
         self.ca_passwd = self.config.get('shioaj_api', 'ca_passwd')
@@ -82,7 +82,8 @@ class OrderAgent(OrderAgentBase):
         retry = 0
         while True:
             try:
-                self.api.login(self.person_id, self.passwd, contracts_timeout=30000)
+                self.api = sj.Shioaji()
+                self.api.login(self.person_id, self.passwd)
 
                 print('[%s] Initialize CA: %s' % (self.trace_id, self.ca_path))
                 self.api.activate_ca(
@@ -91,11 +92,7 @@ class OrderAgent(OrderAgentBase):
                     person_id=self.person_id
                 )
 
-                return dict(
-                    api='login',
-                    success=True,
-                    result='Login with person_id: %s' % self.person_id
-                )
+                return
 
             except Exception as e:
                 if self.person_id and self.passwd:
@@ -104,11 +101,7 @@ class OrderAgent(OrderAgentBase):
                 if no_retry or retry > 6:
                     print('[%s] Login failed after retry. %s' % (
                         self.trace_id, traceback.format_exc().replace('\n', ' >> ')))
-                    return dict(
-                        api='login',
-                        success=False,
-                        result=str(e)
-                    )
+                    raise Exception('Login failed')
             retry += 1
             time.sleep(retry * 1.5)
             print('[%s] _do_login start retry %s' % (self.trace_id, retry))
@@ -344,18 +337,8 @@ class OrderAgent(OrderAgentBase):
 
     def InitAgent(self, agent_id):
         print('[%s] InitAgent > agent: %s' % (self.trace_id, agent_id))
-        retry = 0
-        while True:
-            try:
-                self._do_login()
-                self._set_account(agent_id)
-                return
-            except:
-                retry += 1
-                if retry > 5:
-                    print('[%s] Failed on InitAgent %s after retry. Error: %s' % (
-                    self.trace_id, agent_id, traceback.format_exc().replace('\n', '>>')))
-                time.sleep(retry)
+        self._do_login()
+        self._set_account(agent_id)
 
     def CloseAgent(self):
         print('[%s] CloseAgent > agent: %s' % (self.trace_id, self.agent_id))
