@@ -1,5 +1,5 @@
 class AgentCommand(object):
-    COMMAND_TIMEOUT = 120  # seconds
+    COMMAND_TIMEOUT = 300  # seconds
 
     ENABLE_AGENT = 'ENABLE_AGENT'
     DISABLE_AGENT = 'DISABLE_AGENT'
