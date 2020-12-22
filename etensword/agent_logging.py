@@ -1,6 +1,7 @@
 import logging
+from datetime import datetime, timedelta
+
 import sys
-from datetime import datetime
 
 from etensword import get_config
 
@@ -24,11 +25,12 @@ def get_file_handler(log_file):
 
 
 def get_logger(logger_name):
+    tw_now_time = datetime.utcnow() + timedelta(hours=8)
     logger = logging.getLogger(logger_name)
     logger.setLevel(LOG_LEVEL)
     logger.addHandler(get_console_handler())
     if LOG_FILE_PATH:
-        logger.addHandler(get_file_handler(LOG_FILE_PATH.replace('{date}', datetime.now().strftime('%Y%m%d'))))
+        logger.addHandler(get_file_handler(LOG_FILE_PATH.replace('{date}', tw_now_time.strftime('%Y%m%d'))))
     # with this pattern, it's rarely necessary to propagate the error up to parent
     logger.propagate = False
     return logger
